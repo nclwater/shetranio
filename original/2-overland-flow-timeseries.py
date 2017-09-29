@@ -19,7 +19,7 @@ HDFgroup = '4 ovr_flow'
 #outfile location
 outfilefolder = '2-output-overland-flow-timeseries'
 
-#points that you want time series data for
+#points that you want time series inputs for
 timeseriesLocations= 'overland-flow-locations.txt'
 
 # CHANGE ME to start date of simulation period (Y, m, d, h, min)
@@ -89,7 +89,7 @@ def getTimeSeriesFromPoint(i,HDFgroup):
             #print 'found required subgroup: ' , subgroup
             val = group[subgroup + '/' + 'value']
 
-            # data[channel number:face:time]
+            # inputs[channel number:face:time]
             # use i-1 as i starets at 0
             data = val[i-1,:,:]
  
@@ -125,7 +125,7 @@ def timeseriesplot(psltimes,data,Npoints,OverlandLoc,ElevationLink):
             #plot m below ground
             ax.plot(psltimes,data[i,:],label=plotlabel[i])
             #plot absolute elevation
-            #ax.plot(psltimes,elevation[i]-data[i,:],label=plotlabel[i])
+            #ax.plot(psltimes,elevation[i]-inputs[i,:],label=plotlabel[i])
         i+=1
     #plot m below ground
     ax.set_ylabel('Discharge (m$^3$/s)')
@@ -208,7 +208,7 @@ while i<ntimes:
     datetimes[i]= day1 + datetime.timedelta(hours=int(Overtimes[i]))
     i+=1
 
-#get the time series data
+#get the time series inputs
 #discharge is specifed at 4 faces. We want the maximum absolute discharge
 data=np.zeros(shape=(Npoints,4,ntimes))
 data2=np.zeros(shape=(Npoints,ntimes))

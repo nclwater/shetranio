@@ -89,7 +89,7 @@ def getpsl(t,nrows,ncols,HDFgroup):
             #print 'found required subgroup: ' , subgroup
             val = group[subgroup + '/' + 'value']
 
-            # data[nrows:ncols:time] ie [j,i,:]
+            # inputs[nrows:ncols:time] ie [j,i,:]
             data = val[1:nrows,1:ncols,t]
  
     return data

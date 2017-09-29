@@ -19,7 +19,7 @@ outfilefolder = '1-output-discharge-measured-vs-simulated'
 
 def timeSeriesPlotter(file):
 
-    # read in the data
+    # read in the inputs
     
     table = open(file, "r")
     table.readline()

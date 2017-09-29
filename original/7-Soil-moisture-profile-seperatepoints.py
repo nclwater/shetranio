@@ -19,7 +19,7 @@ HDFgroup = '3 theta'
 #outfile location
 outfilefolder = '7-output-Soil-moisture-profile-seperatepoints'
 
-#points that you want time series data for
+#points that you want time series inputs for
 timeseriesLocations= 'Soil-moisture-profile-locations.txt'
 
 #number of soil layers needing output for. Starting from the top.
@@ -69,7 +69,7 @@ def getCellSziesFromPoint(j,i,nlayers):
             #print 'found required subgroup: ' , subgroup
             val = group[subgroup]
 
-            # data[nrows:ncols:time] ie [j,i,:]
+            # inputs[nrows:ncols:time] ie [j,i,:]
             data = val[j,i,0,0:nlayers]
   
     return data
@@ -104,7 +104,7 @@ def getTimeSeriesFromPoint(j,i,HDFgroup):
             #print 'found required subgroup: ' , subgroup
             val = group[subgroup + '/' + 'value']
 
-            # data[nrows:ncols:nlayers:time] 
+            # inputs[nrows:ncols:nlayers:time]
             data = val[j,i,:,:]
             # no value set to nan
             data[data==-1.0]=np.nan
@@ -225,7 +225,7 @@ ntimes = dimstime[0]
 nlayers=FindNumberofLayers(HDFgroup)
 userspecNlayers=min(nlayers,userspecNlayers)
 
-#get the time series data
+#get the time series inputs
 data=np.zeros(shape=(nlayers,ntimes,Npoints))
 i=0
 while i<Npoints:

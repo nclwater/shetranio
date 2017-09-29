@@ -19,7 +19,7 @@ HDFgroup = '2 ph_depth'
 #outfile location
 outfilefolder = '3-output-WaterTable-timeseries'
 
-#points that you want time series data for
+#points that you want time series inputs for
 timeseriesLocations= 'WaterTable-timeseries-locations.txt'
 
 # CHANGE ME to start date of simulation period (Y, m, d, h, min)
@@ -68,7 +68,7 @@ def getTimeSeriesFromPoint(j,i,HDFgroup):
             #print 'found required subgroup: ' , subgroup
             val = group[subgroup + '/' + 'value']
 
-            # data[nrows:ncols:time] ie [j,i,:]
+            # inputs[nrows:ncols:time] ie [j,i,:]
             data = val[j,i,:]
  
     data = [round(m,2) for m in data]
@@ -104,7 +104,7 @@ def timeseriesplot(psltimes,data,Npoints,row,col,elevation):
             #plot m below ground
             ax.plot(psltimes,data[i,:],label=plotlabel[i])
             #plot absolute elevation
-            #ax.plot(psltimes,elevation[i]-data[i,:],label=plotlabel[i])
+            #ax.plot(psltimes,elevation[i]-inputs[i,:],label=plotlabel[i])
         i+=1
     #plot m below ground
     ax.set_ylabel('Water Table Depth (m below ground)')
@@ -181,7 +181,7 @@ while i<ntimes:
     datetimes[i]= day1 + datetime.timedelta(hours=int(psltimes[i]))
     i+=1
 
-#get the time series data
+#get the time series inputs
 data=np.zeros(shape=(Npoints,ntimes))
 i=0
 while i<Npoints:
