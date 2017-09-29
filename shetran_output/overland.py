@@ -5,7 +5,7 @@ import h5py
 import datetime
 
 def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
-    """Saves a plot of observed verses simulated discharge to a PNG file
+    """Using HDF file, produces Time Series of discharge at specified Shetran channel numbers
 
         Args:
             h5_file (str): Path to the input HDF5 file.
