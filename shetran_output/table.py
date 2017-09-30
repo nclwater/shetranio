@@ -179,7 +179,7 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
 
 def plot2d(h5_file, time_interval, time, hdf_group, out_dir):
 
-    """Using HDF file, produces Time Series of phreatic surface depth at timeseriesLocations
+    """Using HDF file, produces 2d plots of phreatic surface depth at regular timesteps
 
         Args:
             h5_file (str): Path to the input HDF5 file.
