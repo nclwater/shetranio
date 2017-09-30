@@ -13,7 +13,7 @@ def plot(in_file, out_dir):
             Returns:
                 None
 
-            """
+    """
     def timeSeriesPlotter():
         """Saves a plot of observed verses simulated discharge to a PNG file
 

@@ -17,7 +17,7 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
         Returns:
             None
 
-        """
+    """
 
     def getColRowLocation():
         tgroup = '/CONSTANTS'

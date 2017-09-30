@@ -6,7 +6,7 @@ import os
 
 def plot_points(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
     """Using HDF file produces soil moisture profile plots of particular points.
-            each figure shows all the points at a particular time.
+            Each figure shows all the points at a particular time.
             There is a separate figure for each time.
 
                 Args:
@@ -19,7 +19,7 @@ def plot_points(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
                 Returns:
                     None
 
-            """
+    """
     def getElevations():
         tgroup = '/CONSTANTS'
         tsubgroup = 'surf_elv'

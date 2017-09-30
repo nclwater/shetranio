@@ -20,7 +20,7 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
             Returns:
                 None
 
-            """
+    """
     def getElevations():
         tgroup = '/CONSTANTS'
         tsubgroup = 'surf_elv'
@@ -344,7 +344,7 @@ def plot3d(h5_file, hdf_group, out_dir):
             Returns:
                 None
 
-        """
+     """
 
     # assume grid size is the same everywhere (this is not necessarily true but is usual)
     def getGridSize():
