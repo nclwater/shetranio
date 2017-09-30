@@ -14,7 +14,7 @@ def plot_points(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
                     hdf_group (str): Name of HDF file output group.
                     out_dir (str): Folder to save the output PNG into.
                     timeseries_locations (str): Points that you want time series inputs for.
-                    n_layers (str): Number of soil layers needing output for. Starting from the top.
+                    n_layers (int): Number of soil layers needing output for. Starting from the top.
 
                 Returns:
                     None
@@ -252,7 +252,7 @@ def plot_times(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
                         hdf_group (str): Name of HDF file output group.
                         out_dir (str): Folder to save the output PNG into.
                         timeseries_locations (str): Points that you want time series inputs for.
-                        n_layers (str): Number of soil layers needing output for. Starting from the top.
+                        n_layers (int): Number of soil layers needing output for. Starting from the top.
 
                     Returns:
                         None
