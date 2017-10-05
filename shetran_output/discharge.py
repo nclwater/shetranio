@@ -14,129 +14,157 @@ def plot(in_file, out_dir):
                 None
 
     """
-    def timeSeriesPlotter():
-        """Saves a plot of observed verses simulated discharge to a PNG file
+    pass
+
+def read(in_file):
+    table = open(in_file, "r")
+    table.readline()
+    obs = []
+    sim = []
+    days = []
+    for line in table:
+        lineList = line.rstrip().split(",")
+        dayVal = lineList[0]
+        obsVal = lineList[1]
+        simVal = lineList[2]
+
+        obs.append(float(obsVal))
+
+        sim.append(float(simVal))
+
+        days.append(datetime.strptime(dayVal, '%d/%m/%Y'))
+
+    table.close()
+    return obs, sim, days
+
+
+def timeseries(in_file, out_dir=None):
+    """Saves a plot of observed verses simulated discharge to a PNG file
+
+    Args:
+        in_file (str): Path to the input CSV file.
+        out_dir (str): Folder to save the output PNG into.
+
+    Returns:
+        float: Nash-Sutcliffe Efficiency.
+
+    """
+
+    obs, sim, days = read(in_file)
+
+    # plot the graph!
+    # fig, ax = plt.subplots()
+    fig = plt.figure(dpi=300)
+    plt.subplots_adjust(bottom=0.2)
+    plt.plot_date(x=days, y=obs, fmt="b-")
+    plt.plot_date(x=days, y=sim, fmt="r-", alpha=0.75)
+    plt.gca().set_ylim(bottom=0)
+    plt.title("Observed vs simulated flows")
+    plt.ylabel("Flow (m" + r'$^3$' + "/s)")
+    plt.grid(True)
+    plt.xticks(rotation=70)
+
+    groups = ("Observed", "Simulated")
+    line1 = plt.Line2D(range(10), range(10), color="b")
+    line2 = plt.Line2D(range(10), range(10), color="r")
+    plt.legend((line1, line2), groups, numpoints=1, loc=1, prop={'size': 8})
+    if out_dir:
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
+        plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_hydrograph.png")
+    else:
+        return fig
+
+
+
+def get_nse(in_file):
+    obs, sim, days = read(in_file)
+
+    diffList = []
+    obsDiffList = []
+    meanObs = np.mean(obs)
+    for a in range(len(obs)):
+        diffList.append((obs[a] - sim[a]) ** 2)
+        obsDiffList.append((obs[a] - meanObs) ** 2)
+
+    return 1 - (sum(diffList) / sum(obsDiffList))
+
+
+
+def plot_exceedance(in_file, out_dir=None):
+    """Saves an exceedance curve plot to a PNG file
 
         Args:
             in_file (str): Path to the input CSV file.
             out_dir (str): Folder to save the output PNG into.
 
         Returns:
-            float: Nash-Sutcliffe Efficiency.
+            None
 
         """
+    table = open(in_file, "r")
+    table.readline()
+    obs = []
+    sim = []
+    days = []
+    for line in table:
+        lineList = line.rstrip().split(",")
+        dayVal = lineList[0]
+        obsVal = lineList[1]
+        simVal = lineList[2]
 
-        table = open(in_file, "r")
-        table.readline()
-        obs = []
-        sim = []
-        days = []
-        for line in table:
-            lineList = line.rstrip().split(",")
-            dayVal = lineList[0]
-            obsVal = lineList[1]
-            simVal = lineList[2]
+        obs.append(float(obsVal))
 
-            obs.append(float(obsVal))
+        sim.append(float(simVal))
 
-            sim.append(float(simVal))
+        days.append(datetime.strptime(dayVal, '%d/%m/%Y'))
 
-            days.append(datetime.strptime(dayVal, '%d/%m/%Y'))
+    percentilesList = range(5, 100, 5)
+    percentilesList.append(99)
+    percentilesList.insert(0, 1)
 
-        diffList = []
-        obsDiffList = []
-        meanObs = np.mean(obs)
-        for a in range(len(obs)):
-            diffList.append((obs[a] - sim[a]) ** 2)
-            obsDiffList.append((obs[a] - meanObs) ** 2)
+    obs, sim, days = read(in_file)
 
-        NSE = 1 - (sum(diffList) / sum(obsDiffList))
+    obsPercentiles = []
+    simPercentiles = []
+    for perc in percentilesList:
+        obsPercentiles.append(np.percentile(obs, perc))
+        simPercentiles.append(np.percentile(sim, perc))
 
-        # plot the graph!
-        plt.subplots_adjust(bottom=0.2)
-        plt.plot_date(x=days, y=obs, fmt="b-")
-        plt.plot_date(x=days, y=sim, fmt="r-", alpha=0.75)
-        plt.gca().set_ylim(bottom=0)
-        plt.title("Observed vs simulated flows")
-        plt.ylabel("Flow (m" + r'$^3$' + "/s)")
-        plt.grid(True)
-        plt.xticks(rotation=70)
+    percentilesFile = open(os.path.join(out_dir,os.path.basename(in_file)[:-4]) + "_percentiles.csv", "w")
+    percentilesFile.write("Percentile,Observed,Simulated\n")
+    for x in range(len(percentilesList)):
+        percentilesFile.write(
+            str(percentilesList[x]) + "," + str(obsPercentiles[x]) + "," + str(simPercentiles[x]) + "\n")
+    percentilesFile.close()
 
-        groups = ("Observed", "Simulated")
-        line1 = plt.Line2D(range(10), range(10), color="b")
-        line2 = plt.Line2D(range(10), range(10), color="r")
-        plt.legend((line1, line2), groups, numpoints=1, loc=1, prop={'size': 8})
-        plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_hydrograph.png")
-        plt.clf()
-
-        table.close()
-
-        return NSE
-
-
-    def exceedanceCurve():
-        """Saves an exceedance curve plot to a PNG file
-
-            Args:
-                in_file (str): Path to the input CSV file.
-                out_dir (str): Folder to save the output PNG into.
-
-            Returns:
-                None
-
-            """
-
-        percentilesList = range(5, 100, 5)
-        percentilesList.append(99)
-        percentilesList.insert(0, 1)
-
-        table = open(in_file, "r")
-        table.readline()
-        obs = []
-        sim = []
-
-        for line in table:
-            lineList = line.rstrip().split(",")
-            try:
-                obs.append(float(lineList[1]))
-            except:
-                pass
-            try:
-                sim.append(float(lineList[2]))
-            except:
-                pass
-
-        table.close()
-
-        obsPercentiles = []
-        simPercentiles = []
-        for perc in percentilesList:
-            obsPercentiles.append(np.percentile(obs, perc))
-            simPercentiles.append(np.percentile(sim, perc))
-
-        percentilesFile = open(os.path.join(out_dir,os.path.basename(in_file)[:-4]) + "_percentiles.csv", "w")
-        percentilesFile.write("Percentile,Observed,Simulated\n")
-        for x in range(len(percentilesList)):
-            percentilesFile.write(
-                str(percentilesList[x]) + "," + str(obsPercentiles[x]) + "," + str(simPercentiles[x]) + "\n")
-        percentilesFile.close()
-
-        qList = percentilesList
-        qList.reverse()
-        plt.plot(qList, obsPercentiles, c="b", ls="-")
-        plt.plot(qList, simPercentiles, c="r", ls="-", alpha=0.75)
-        plt.title("Flow duration curve of observed vs simulated flows")
-        plt.ylabel("Flow (m" + r'$^3$' + "/s)")
-        plt.xlabel("% Of the time indicated discharge was equalled or exceeded")
-        plt.grid(True)
-        groups = ("Observed", "Simulated")
-        line1 = plt.Line2D(range(10), range(10), color="b")
-        line2 = plt.Line2D(range(10), range(10), color="r")
-        plt.legend((line1, line2), groups, numpoints=1, loc=1, prop={'size': 8})
-        plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_Flow_Duration_Curve.png")
-        plt.clf()
+    qList = percentilesList
+    qList.reverse()
+    plt.plot(qList, obsPercentiles, c="b", ls="-")
+    plt.plot(qList, simPercentiles, c="r", ls="-", alpha=0.75)
+    plt.title("Flow duration curve of observed vs simulated flows")
+    plt.ylabel("Flow (m" + r'$^3$' + "/s)")
+    plt.xlabel("% Of the time indicated discharge was equalled or exceeded")
+    plt.grid(True)
+    groups = ("Observed", "Simulated")
+    line1 = plt.Line2D(range(10), range(10), color="b")
+    line2 = plt.Line2D(range(10), range(10), color="r")
+    plt.legend((line1, line2), groups, numpoints=1, loc=1, prop={'size': 8})
+    plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_Flow_Duration_Curve.png")
+    plt.clf()
 
 
+def balance(in_file, out_dir=None):
+    """Saves a water balance plot to a PNG file
+
+        Args:
+            in_file (str): Path to the input CSV file.
+            out_dir (str): Folder to save the output PNG into.
+
+        Returns:
+            None
+
+        """
     def doWaterBalance(obsOrSim):
         """Calculates the water balance of either the observed or simulated values
 
@@ -216,46 +244,35 @@ def plot(in_file, out_dir):
 
         return dataList
 
+    obs = doWaterBalance("o")
+    sim = doWaterBalance("s")
 
-    def wbGraph():
-        """Saves a water balance plot to a PNG file
+    months = [i + 1 for i in range(12)]
 
-            Args:
-                in_file (str): Path to the input CSV file.
-                out_dir (str): Folder to save the output PNG into.
+    plt.plot(months, obs, c="b", ls="-")
+    plt.plot(months, sim, c="r", ls="-", alpha=0.75)
+    plt.title("Monthlys Average Flows")
+    plt.ylabel("Flow (m" + r'$^3$' + "/s)")
+    plt.xlabel("Month")
+    plt.grid(True)
+    groups = ("Observed", "Simulated")
+    line1 = plt.Line2D(range(10), range(10), color="b")
+    line2 = plt.Line2D(range(10), range(10), color="r")
+    plt.legend((line1, line2), groups, numpoints=1, loc=1, prop={'size': 8})
+    plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_Monthly_Water_Balance.png")
+    plt.clf()
 
-            Returns:
-                None
 
-            """
 
-        obs = doWaterBalance("o")
-        sim = doWaterBalance("s")
+# make folder for graphs and outputs
+# if not os.path.exists(out_dir):
+#     os.mkdir(out_dir)
 
-        months = [i + 1 for i in range(12)]
+# NSE = timeSeriesPlotter()
 
-        plt.plot(months, obs, c="b", ls="-")
-        plt.plot(months, sim, c="r", ls="-", alpha=0.75)
-        plt.title("Monthlys Average Flows")
-        plt.ylabel("Flow (m" + r'$^3$' + "/s)")
-        plt.xlabel("Month")
-        plt.grid(True)
-        groups = ("Observed", "Simulated")
-        line1 = plt.Line2D(range(10), range(10), color="b")
-        line2 = plt.Line2D(range(10), range(10), color="r")
-        plt.legend((line1, line2), groups, numpoints=1, loc=1, prop={'size': 8})
-        plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_Monthly_Water_Balance.png")
-        plt.clf()
-
-    # make folder for graphs and outputs
-    if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
-
-    NSE = timeSeriesPlotter()
-
-    exceedanceCurve()
-    wbGraph()
-
-    print "NSE = ", NSE
+# exceedanceCurve()
+# wbGraph()
+#
+# print "NSE = ", NSE
 
 
