@@ -72,8 +72,8 @@ def timeseries(in_file, out_dir=None):
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
         plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_hydrograph.png")
-    else:
-        return fig
+
+    return fig
 
 
 
@@ -90,35 +90,7 @@ def get_nse(in_file):
     return 1 - (sum(diffList) / sum(obsDiffList))
 
 
-
-def plot_exceedance(in_file, out_dir=None):
-    """Saves an exceedance curve plot to a PNG file
-
-        Args:
-            in_file (str): Path to the input CSV file.
-            out_dir (str): Folder to save the output PNG into.
-
-        Returns:
-            None
-
-        """
-    table = open(in_file, "r")
-    table.readline()
-    obs = []
-    sim = []
-    days = []
-    for line in table:
-        lineList = line.rstrip().split(",")
-        dayVal = lineList[0]
-        obsVal = lineList[1]
-        simVal = lineList[2]
-
-        obs.append(float(obsVal))
-
-        sim.append(float(simVal))
-
-        days.append(datetime.strptime(dayVal, '%d/%m/%Y'))
-
+def get_percentiles(in_file, out_dir=None):
     percentilesList = range(5, 100, 5)
     percentilesList.append(99)
     percentilesList.insert(0, 1)
@@ -131,15 +103,36 @@ def plot_exceedance(in_file, out_dir=None):
         obsPercentiles.append(np.percentile(obs, perc))
         simPercentiles.append(np.percentile(sim, perc))
 
-    percentilesFile = open(os.path.join(out_dir,os.path.basename(in_file)[:-4]) + "_percentiles.csv", "w")
-    percentilesFile.write("Percentile,Observed,Simulated\n")
-    for x in range(len(percentilesList)):
-        percentilesFile.write(
-            str(percentilesList[x]) + "," + str(obsPercentiles[x]) + "," + str(simPercentiles[x]) + "\n")
-    percentilesFile.close()
+    if out_dir:
+
+        percentilesFile = open(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_percentiles.csv", "w")
+        percentilesFile.write("Percentile,Observed,Simulated\n")
+        for x in range(len(percentilesList)):
+            percentilesFile.write(
+                str(percentilesList[x]) + "," + str(obsPercentiles[x]) + "," + str(simPercentiles[x]) + "\n")
+        percentilesFile.close()
+
+    return percentilesList, obsPercentiles, simPercentiles
+
+
+
+
+def plot_exceedance(in_file, out_dir=None):
+    """Saves an exceedance curve plot to a PNG file
+
+        Args:
+            in_file (str): Path to the input CSV file.
+            out_dir (str): Folder to save the output PNG into.
+
+        Returns:
+            None
+
+        """
+    percentilesList, obsPercentiles, simPercentiles = get_percentiles(in_file)
 
     qList = percentilesList
     qList.reverse()
+    fig = plt.figure(dpi=300)
     plt.plot(qList, obsPercentiles, c="b", ls="-")
     plt.plot(qList, simPercentiles, c="r", ls="-", alpha=0.75)
     plt.title("Flow duration curve of observed vs simulated flows")
@@ -150,11 +143,15 @@ def plot_exceedance(in_file, out_dir=None):
     line1 = plt.Line2D(range(10), range(10), color="b")
     line2 = plt.Line2D(range(10), range(10), color="r")
     plt.legend((line1, line2), groups, numpoints=1, loc=1, prop={'size': 8})
-    plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_Flow_Duration_Curve.png")
-    plt.clf()
+    if out_dir:
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
+        plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_Flow_Duration_Curve.png")
+
+    return fig
 
 
-def balance(in_file, out_dir=None):
+def plot_water_balance(in_file, out_dir=None):
     """Saves a water balance plot to a PNG file
 
         Args:
