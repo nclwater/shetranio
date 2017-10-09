@@ -54,7 +54,7 @@ def timeseries(in_file, out_dir=None):
 
     # plot the graph!
     # fig, ax = plt.subplots()
-    fig = plt.figure(dpi=300)
+    fig = plt.figure(dpi=300, figsize=[12.0, 5.0])
     plt.subplots_adjust(bottom=0.2)
     plt.plot_date(x=days, y=obs, fmt="b-")
     plt.plot_date(x=days, y=sim, fmt="r-", alpha=0.75)
@@ -132,7 +132,7 @@ def plot_exceedance(in_file, out_dir=None):
 
     qList = percentilesList
     qList.reverse()
-    fig = plt.figure(dpi=300)
+    fig = plt.figure(dpi=300, figsize=[12.0, 5.0])
     plt.plot(qList, obsPercentiles, c="b", ls="-")
     plt.plot(qList, simPercentiles, c="r", ls="-", alpha=0.75)
     plt.title("Flow duration curve of observed vs simulated flows")
