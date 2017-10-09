@@ -113,7 +113,7 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
         ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
         if out_dir:
             plt.savefig(os.path.join(out_dir,'Discharge-timeseries.png'))
-        return fig
+        plt.show()
 
 
     def getTimeSeriesNpoints(locations):

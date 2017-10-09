@@ -54,7 +54,7 @@ def timeseries(in_file, out_dir=None):
 
     # plot the graph!
     # fig, ax = plt.subplots()
-    fig = plt.figure(dpi=300, figsize=[12.0, 5.0])
+    plt.figure(dpi=300, figsize=[12.0, 5.0])
     plt.subplots_adjust(bottom=0.2)
     plt.plot_date(x=days, y=obs, fmt="b-")
     plt.plot_date(x=days, y=sim, fmt="r-", alpha=0.75)
@@ -73,7 +73,7 @@ def timeseries(in_file, out_dir=None):
             os.mkdir(out_dir)
         plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_hydrograph.png")
 
-    return fig
+    plt.show()
 
 
 
@@ -132,7 +132,7 @@ def plot_exceedance(in_file, out_dir=None):
 
     qList = percentilesList
     qList.reverse()
-    fig = plt.figure(dpi=300, figsize=[12.0, 5.0])
+    plt.figure(dpi=300, figsize=[12.0, 5.0])
     plt.plot(qList, obsPercentiles, c="b", ls="-")
     plt.plot(qList, simPercentiles, c="r", ls="-", alpha=0.75)
     plt.title("Flow duration curve of observed vs simulated flows")
@@ -148,7 +148,7 @@ def plot_exceedance(in_file, out_dir=None):
             os.mkdir(out_dir)
         plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_Flow_Duration_Curve.png")
 
-    return fig
+    plt.show()
 
 
 def plot_water_balance(in_file, out_dir=None):
@@ -246,6 +246,7 @@ def plot_water_balance(in_file, out_dir=None):
 
     months = [i + 1 for i in range(12)]
 
+    plt.figure(dpi=300, figsize=[12.0, 5.0])
     plt.plot(months, obs, c="b", ls="-")
     plt.plot(months, sim, c="r", ls="-", alpha=0.75)
     plt.title("Monthlys Average Flows")
@@ -256,8 +257,11 @@ def plot_water_balance(in_file, out_dir=None):
     line1 = plt.Line2D(range(10), range(10), color="b")
     line2 = plt.Line2D(range(10), range(10), color="r")
     plt.legend((line1, line2), groups, numpoints=1, loc=1, prop={'size': 8})
-    plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_Monthly_Water_Balance.png")
-    plt.clf()
+    if out_dir:
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
+        plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_Monthly_Water_Balance.png")
+    plt.show()
 
 
 

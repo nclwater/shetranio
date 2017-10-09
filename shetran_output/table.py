@@ -103,7 +103,7 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
                 os.mkdir(out_dir)
             plt.savefig(os.path.join(out_dir,'watertable-timeseries.png'))
 
-        return fig
+        plt.show()
 
 
     def getTimeSeriesNpoints(locations):
