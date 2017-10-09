@@ -4,7 +4,7 @@ import os
 import h5py
 import datetime
 
-def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
+def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
     """Using HDF file, produces Time Series of discharge at specified Shetran channel numbers
 
         Args:
@@ -94,7 +94,8 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
 
     def timeseriesplot(psltimes, data, Npoints, OverlandLoc, ElevationLink):
         plotlabel = np.empty(Npoints, dtype=object)
-        fig = plt.figure(figsize=[12.0, 5.0])
+        fig = plt.figure(figsize=[12.0, 5.0],
+                         dpi=300)
         plt.subplots_adjust(bottom=0.2, right=0.75)
         ax = plt.subplot(1, 1, 1)
         i = 0
@@ -109,11 +110,10 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
         # plot m below ground
         ax.set_ylabel('Discharge (m$^3$/s)')
         plt.xticks(rotation=70)
-        legend = ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
-        plt.savefig(out_dir + '/' + 'Discharge-timeseries.png')
-        plt.close()
-
-        return
+        ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
+        if out_dir:
+            plt.savefig(os.path.join(out_dir,'Discharge-timeseries.png'))
+        return fig
 
 
     def getTimeSeriesNpoints(locations):
@@ -139,9 +139,6 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    # make folder for graphs and outputs
-    if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
 
     # number of points (Npoints) in tuime series file
     locations = open(timeseries_locations, "r")
@@ -167,15 +164,15 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
         p4 = np.where(ColRowLocation4 == int(OverlandLoc[i]))
         if p1[0] > 0:
             ElevationLink[i] = Elevation1[p1]
-            print str(int(OverlandLoc[i])) + ' is a E-W channel on column ' + str(p1[1])[1:-1] + ' between rows ' + str(
-                p3[0])[1:-1] + ' and ' + str(p1[0])[1:-1] + ' with elevation = ' + str(Elevation1[p1])[1:-1]
+            # print str(int(OverlandLoc[i])) + ' is a E-W channel on column ' + str(p1[1])[1:-1] + ' between rows ' + str(
+            #     p3[0])[1:-1] + ' and ' + str(p1[0])[1:-1] + ' with elevation = ' + str(Elevation1[p1])[1:-1]
         elif p2[0] > 0:
             ElevationLink[i] = Elevation2[p2]
-            print str(int(OverlandLoc[i])) + ' is a N-S channel on row ' + str(p2[0])[1:-1] + ' between columns ' + str(
-                p2[1])[1:-1] + ' and  ' + str(p4[1])[1:-1] + ' with elevation = ' + str(Elevation2[p2])[1:-1]
+            # print str(int(OverlandLoc[i])) + ' is a N-S channel on row ' + str(p2[0])[1:-1] + ' between columns ' + str(
+            #     p2[1])[1:-1] + ' and  ' + str(p4[1])[1:-1] + ' with elevation = ' + str(Elevation2[p2])[1:-1]
         else:
             ElevationLink[i] = -999
-            print str(int(OverlandLoc[i])) + ' is not a Shetran link number'
+            # print str(int(OverlandLoc[i])) + ' is not a Shetran link number'
         i += 1
 
     # get times of output. ntimes is the final time
@@ -204,5 +201,5 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
             data2[i, j] = np.amax(abs(data[i, :, j]))
 
     # time series plots.
-    print 'time series plot'
-    timeseriesplot(datetimes, data2, Npoints, OverlandLoc, ElevationLink)
+    # print 'time series plot'
+    return timeseriesplot(datetimes, data2, Npoints, OverlandLoc, ElevationLink)
