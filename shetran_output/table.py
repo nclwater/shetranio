@@ -5,7 +5,7 @@ import os
 import datetime
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
-from ipywidgets import interactive
+from ipywidgets import interact, IntSlider, Layout
 
 
 def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
@@ -177,7 +177,7 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
     # print 'time series plot'
     return timeseriesplot(datetimes, data, Npoints, row, col, elevation)
 
-def plot2d(h5_file, time_interval, time, hdf_group, out_dir):
+def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=None, time_interval=1):
 
     """Using HDF file, produces 2d plots of phreatic surface depth at regular timesteps
 
@@ -269,8 +269,9 @@ def plot2d(h5_file, time_interval, time, hdf_group, out_dir):
 
         return psltimes
 
-    def TwoDPlot(time, ntimes, nrows, ncols, minpsl, maxpsl, GridSize, timeinterval, HDFgroup, outfilefolder):
+    def TwoDPlot(ntimes, nrows, ncols, minpsl, maxpsl, GridSize, HDFgroup):
         # while time < ntimes:
+
         def plot(current_time):
             fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
             h5datapsl2d = getpsl(current_time, nrows, ncols, HDFgroup)
@@ -290,12 +291,31 @@ def plot2d(h5_file, time_interval, time, hdf_group, out_dir):
                          # fontsize=14,
                          # fontweight='bold'
                          )
-
-            # plt.savefig(outfilefolder + '/' + 'WaterTable-2d-time' + str(time) + '.png')
+            if out_dir:
+                if not os.path.exists(out_dir):
+                    os.mkdir(out_dir)
+                plt.savefig(out_dir + '/' + 'WaterTable-2d-time' + str(current_time) + '.png')
             plt.show()
 
             # time += timeinterval
-        return interactive(plot, current_time=(time,ntimes-1,1))
+        if interactive:
+            return interact(plot, current_time=IntSlider(value=0,
+                                                         min=0,
+                                                         max=ntimes-1,
+                                                         step=time_interval,
+                                                         continuous_update=False,
+                                                         description=' ',
+                                                         readout_format='',
+                                                         layout=Layout(width='100%')),
+                            )
+        else:
+            if timestep is not None:
+                if 0<=timestep<ntimes:
+                    plot(timestep)
+                else:
+                    raise Exception('Timestep must be between %s and %s' % (0, ntimes-1))
+            else:
+                raise Exception('You need to specify a timestep for non-interactive plots')
 
     def maxminpsl(nrows, ncols, ntimes, timeinterval):
         minpsl = 99999.0
@@ -313,9 +333,6 @@ def plot2d(h5_file, time_interval, time, hdf_group, out_dir):
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    # make folder for graphs and outputs
-    if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
 
     fh5 = h5py.File(h5_file, 'r')
     dem, nrows, ncols = getElevations()
@@ -331,8 +348,8 @@ def plot2d(h5_file, time_interval, time, hdf_group, out_dir):
     minpsl, maxpsl = maxminpsl(nrows, ncols, ntimes, time_interval)
 
     # 2d plots. The numbers produced depend on the time interval
-    print '2d plot'
-    return TwoDPlot(time, ntimes, nrows, ncols, minpsl, maxpsl, GridSize, time_interval, hdf_group, out_dir)
+    # print '2d plot'
+    return TwoDPlot(ntimes, nrows, ncols, minpsl, maxpsl, GridSize, hdf_group)
 
 def plot3d(h5_file, hdf_group, out_dir):
     """Using HDF file, produces 3d plots of water table or phreatic surface depth.
