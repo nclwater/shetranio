@@ -2,9 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import h5py
 import os
+from ipywidgets import interact, IntSlider, Layout
 
 
-def plot_points(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
+def plot_points(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None, interactive=True, timestep=0):
     """Using HDF file produces soil moisture profile plots of particular points.
             Each figure shows all the points at a particular time.
             There is a separate figure for each time.
@@ -110,10 +111,11 @@ def plot_points(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
 
 
     def timeseriesplot(moisturetimes, depth, data, ntimes, Npoints, row, col, elevation, minth, maxth, userspecNlayers):
-        time = 1
-        while time < ntimes:
+        # time = 1
+        # while time < ntimes:
+        def plot(time):
             plotlabel = np.empty(Npoints, dtype=object)
-            fig = plt.figure(figsize=[12.0, 12.0])
+            fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
             plt.subplots_adjust(bottom=0.1, right=0.75)
             ax = plt.subplot(1, 1, 1)
             ax.set_ylabel('Depth(m)')
@@ -131,12 +133,25 @@ def plot_points(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
             axes.set_xlim([minth, maxth])
             plt.gca().invert_yaxis()
             legend = ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
-            fig.suptitle("Profile. Time = %7.0f hours" % moisturetimes[time], fontsize=14, fontweight='bold')
-            plt.savefig(out_dir + '/' + 'profile' + str(time) + '.png')
-            plt.close()
-            time += 1
-
-        return
+            plt.title("Profile. Time = %7.0f hours" % moisturetimes[time])
+            if out_dir:
+                if not os.path.exists(out_dir):
+                    os.mkdir(out_dir)
+                plt.savefig(out_dir + '/' + 'profile' + str(time) + '.png')
+            plt.show()
+            # time += 1
+        if interactive:
+            return interact(plot, time=IntSlider(value=timestep,
+                                                         min=0,
+                                                         max=ntimes-1,
+                                                         step=1,
+                                                         continuous_update=False,
+                                                         description=' ',
+                                                         readout_format='',
+                                                         layout=Layout(width='100%')),
+                            )
+        else:
+            plot(timestep)
 
 
     def minmaxmoisture(data, ntimes, Npoints):
@@ -173,8 +188,9 @@ def plot_points(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     # make folder for graphs and outputs
-    if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
+    # if out_dir:
+    #     if not os.path.exists(out_dir):
+    #         os.mkdir(out_dir)
 
     # number of points (Npoints) in time series file
     locations = open(timeseries_locations, "r")
@@ -193,8 +209,8 @@ def plot_points(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
     while i < Npoints:
 
         elevation[i] = dem[int(row[i]), int(col[i])]
-        if elevation[i] == -1:
-            print 'column ', int(col[i]), ' row ', int(row[i]), ' outside of catchment'
+        # if elevation[i] == -1:
+        #     print 'column ', int(col[i]), ' row ', int(row[i]), ' outside of catchment'
 
         i += 1
 
@@ -202,6 +218,7 @@ def plot_points(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
     moisturetimes = getmoisturetimes(hdf_group)
     dimstime = moisturetimes.shape
     ntimes = dimstime[0]
+    assert 0 <= timestep < ntimes, 'Timestep must be between 0 and %s' % (int(ntimes) - 1)
 
     # get the number of layers for which output is defined. This is specified in the visulisation plan file and might not be all the layers
     nlayers = FindNumberofLayers(hdf_group)
@@ -238,7 +255,7 @@ def plot_points(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
     minth, maxth = minmaxmoisture(data, ntimes, Npoints)
 
     # time series plots.
-    print 'Profile plot'
+    # print 'Profile plot'
     timeseriesplot(moisturetimes, depth, data, ntimes, Npoints, row, col, elevation, minth, maxth, n_layers)
 
 
@@ -429,8 +446,8 @@ def plot_times(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
     while i < Npoints:
 
         elevation[i] = dem[int(row[i]), int(col[i])]
-        if elevation[i] == -1:
-            print 'column ', int(col[i]), ' row ', int(row[i]), ' outside of catchment'
+        # if elevation[i] == -1:
+        #     print 'column ', int(col[i]), ' row ', int(row[i]), ' outside of catchment'
 
         i += 1
 
@@ -474,7 +491,7 @@ def plot_times(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
     minth, maxth = minmaxmoisture(data, ntimes, Npoints)
 
     # time series plots.
-    print 'Profile plot'
+    # print 'Profile plot'
     timeseriesplot(moisturetimes, depth, data, ntimes, Npoints, row, col, elevation, minth, maxth, n_layers)
 
 
