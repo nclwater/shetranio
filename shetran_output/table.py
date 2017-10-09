@@ -5,6 +5,7 @@ import os
 import datetime
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
+from ipywidgets import interactive
 
 
 def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
@@ -269,9 +270,10 @@ def plot2d(h5_file, time_interval, time, hdf_group, out_dir):
         return psltimes
 
     def TwoDPlot(time, ntimes, nrows, ncols, minpsl, maxpsl, GridSize, timeinterval, HDFgroup, outfilefolder):
-        while time < ntimes:
-            fig = plt.figure(figsize=[12.0, 12.0])
-            h5datapsl2d = getpsl(time, nrows, ncols, HDFgroup)
+        # while time < ntimes:
+        def plot(current_time):
+            fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
+            h5datapsl2d = getpsl(current_time, nrows, ncols, HDFgroup)
             h5datapsl2d[h5datapsl2d == -1.0] = np.nan
 
             ax = plt.subplot(1, 1, 1)
@@ -281,17 +283,19 @@ def plot2d(h5_file, time_interval, time, hdf_group, out_dir):
             cax = ax.imshow(h5datapsl2d, extent=[0, GridSize * ncols, 0, GridSize * nrows], interpolation='none',
                             vmin=minpsl, vmax=maxpsl, cmap='Blues_r')
             # cbar = fig.colorbar(cax,ticks=[-1,0,1,2],fraction=0.04, pad=0.10)
-            cbar = fig.colorbar(cax, fraction=0.04, pad=0.10)
-            plt.subplots_adjust(wspace=0.4)
+            fig.colorbar(cax, fraction=0.04, pad=0.10)
+            # plt.subplots_adjust(wspace=0.4)
 
-            fig.suptitle("Water Table depth - meters below ground. Time = %7.0f hours" % psltimes[time], fontsize=14,
-                         fontweight='bold')
+            plt.title("Water Table depth - meters below ground. Time = %7.0f hours" % psltimes[current_time],
+                         # fontsize=14,
+                         # fontweight='bold'
+                         )
 
-            plt.savefig(outfilefolder + '/' + 'WaterTable-2d-time' + str(time) + '.png')
-            plt.close()
+            # plt.savefig(outfilefolder + '/' + 'WaterTable-2d-time' + str(time) + '.png')
+            plt.show()
 
-            time += timeinterval
-        return
+            # time += timeinterval
+        return interactive(plot, current_time=(time,ntimes-1,1))
 
     def maxminpsl(nrows, ncols, ntimes, timeinterval):
         minpsl = 99999.0
@@ -328,7 +332,7 @@ def plot2d(h5_file, time_interval, time, hdf_group, out_dir):
 
     # 2d plots. The numbers produced depend on the time interval
     print '2d plot'
-    TwoDPlot(time, ntimes, nrows, ncols, minpsl, maxpsl, GridSize, time_interval, hdf_group, out_dir)
+    return TwoDPlot(time, ntimes, nrows, ncols, minpsl, maxpsl, GridSize, time_interval, hdf_group, out_dir)
 
 def plot3d(h5_file, hdf_group, out_dir):
     """Using HDF file, produces 3d plots of water table or phreatic surface depth.
