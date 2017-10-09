@@ -351,7 +351,7 @@ def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=None, ti
     # print '2d plot'
     return TwoDPlot(ntimes, nrows, ncols, minpsl, maxpsl, GridSize, hdf_group)
 
-def plot3d(h5_file, hdf_group, out_dir):
+def plot3d(h5_file, hdf_group, out_dir=None, interactive=True, azi=0):
     """Using HDF file, produces 3d plots of water table or phreatic surface depth.
         The face colour corresponds to the phreatic depth.
         By default it is produced at the final timestep (ntimes) with views every 10 degrees.
@@ -365,6 +365,7 @@ def plot3d(h5_file, hdf_group, out_dir):
                 None
 
      """
+    assert 0<=azi<=360, 'Azimuth must be between 0 and 360'
 
     # assume grid size is the same everywhere (this is not necessarily true but is usual)
     def getGridSize():
@@ -450,11 +451,12 @@ def plot3d(h5_file, hdf_group, out_dir):
         X, Y = np.meshgrid(X, Y)
 
         # repeated to produce a plot for each direction (azi)
-        print '3d plot'
+        # print '3d plot'
         # starting direction
-        azi = 0
-        while azi < 360:
-            fig = plt.figure(figsize=[12.0, 5.0])
+        # azi = 0
+        # while azi < 360:
+        def plot(azi):
+            fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
 
             # ax = plt.subplot(1, 1, 1, projection='3d')
             ax = Axes3D(fig)
@@ -488,17 +490,29 @@ def plot3d(h5_file, hdf_group, out_dir):
             m = cm.ScalarMappable(cmap=cm.Blues_r)
             m.set_array(scale)
             plt.colorbar(m)
+            if out_dir:
+                if not os.path.exists(out_dir):
+                    os.mkdir(out_dir)
+                plt.savefig(outfilefolder + '/' + 'WaterTable-3d-view' + str(azi) + '.png')
+            plt.show()
+            # azi += 10
+            # return
+        if interactive:
+            return interact(plot, azi=IntSlider(value=azi,
+                                                         min=0,
+                                                         max=360,
+                                                         step=10,
+                                                         continuous_update=False,
+                                                         description=' ',
+                                                         readout_format='',
+                                                         layout=Layout(width='100%')),
+                            )
 
-            plt.savefig(outfilefolder + '/' + 'WaterTable-3d-view' + str(azi) + '.png')
-            plt.close()
-            azi += 10
-        return
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     # make folder for graphs and outputs
-    if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
+
 
     fh5 = h5py.File(h5_file, 'r')
     dem, nrows, ncols = getElevations()
@@ -517,4 +531,4 @@ def plot3d(h5_file, hdf_group, out_dir):
 
     # 3D surface plots - by default produced at final time
     # figures produced by default at ntimes (this can be changed)
-    ThreeDPlot(ntimes, nrows, ncols, GridSize, mindem, maxdem, dem, hdf_group, out_dir)
+    return ThreeDPlot(ntimes, nrows, ncols, GridSize, mindem, maxdem, dem, hdf_group, out_dir)
