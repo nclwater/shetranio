@@ -177,7 +177,7 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
     # print 'time series plot'
     return timeseriesplot(datetimes, data, Npoints, row, col, elevation)
 
-def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=None, time_interval=1):
+def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=0, time_interval=1):
 
     """Using HDF file, produces 2d plots of phreatic surface depth at regular timesteps
 
@@ -193,7 +193,6 @@ def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=None, ti
             None
 
     """
-
 
     # assume grid size is the same everywhere (this is not necessarily true but is usual)
     def getGridSize():
@@ -299,7 +298,7 @@ def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=None, ti
 
             # time += timeinterval
         if interactive:
-            return interact(plot, current_time=IntSlider(value=0,
+            return interact(plot, current_time=IntSlider(value=timestep,
                                                          min=0,
                                                          max=ntimes-1,
                                                          step=time_interval,
@@ -309,13 +308,7 @@ def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=None, ti
                                                          layout=Layout(width='100%')),
                             )
         else:
-            if timestep is not None:
-                if 0<=timestep<ntimes:
-                    plot(timestep)
-                else:
-                    raise Exception('Timestep must be between %s and %s' % (0, ntimes-1))
-            else:
-                raise Exception('You need to specify a timestep for non-interactive plots')
+            plot(timestep)
 
     def maxminpsl(nrows, ncols, ntimes, timeinterval):
         minpsl = 99999.0
@@ -343,6 +336,7 @@ def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=None, ti
     psltimes = getpsltimes(hdf_group)
     dimstime = psltimes.shape
     ntimes = dimstime[0]
+    assert 0 <= timestep < ntimes, 'Timestep must be between 0 and %s' % (int(ntimes)-1)
 
     # obtain max and min psl
     minpsl, maxpsl = maxminpsl(nrows, ncols, ntimes, time_interval)
