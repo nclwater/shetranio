@@ -7,7 +7,7 @@ from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 
 
-def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
+def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
     """Using HDF file, produces Time Series of phreatic surface depth at timeseriesLocations
 
             Args:
@@ -78,7 +78,7 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
 
     def timeseriesplot(psltimes, data, Npoints, row, col, elevation):
         plotlabel = np.empty(Npoints, dtype=object)
-        fig = plt.figure(figsize=[12.0, 5.0])
+        fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
         plt.subplots_adjust(bottom=0.2, right=0.75)
         ax = plt.subplot(1, 1, 1)
         i = 0
@@ -96,11 +96,14 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
         # ax.set_ylabel('Phreatic Surface Level (m ASl)')
         plt.xticks(rotation=70)
         plt.gca().invert_yaxis()
-        legend = ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
+        ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
         plt.savefig(out_dir + '/' + 'watertable-timeseries.png')
-        plt.close()
+        if out_dir:
+            if not os.path.exists(out_dir):
+                os.mkdir(out_dir)
+            plt.savefig(os.path.join(out_dir,'watertable-timeseries.png'))
 
-        return
+        return fig
 
 
     def getTimeSeriesNpoints(locations):
@@ -127,10 +130,6 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    # make folder for graphs and outputs
-    if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
-
     # number of points (Npoints) in tuime series file
     locations = open(timeseries_locations, "r")
     Npoints = getTimeSeriesNpoints(locations)
@@ -149,8 +148,8 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
     while i < Npoints:
 
         elevation[i] = dem[int(row[i]), int(col[i])]
-        if elevation[i] == -1:
-            print 'column ', int(col[i]), ' row ', int(row[i]), ' outside of catchment'
+        # if elevation[i] == -1:
+        #     print 'column ', int(col[i]), ' row ', int(row[i]), ' outside of catchment'
 
         i += 1
 
@@ -174,8 +173,8 @@ def plot(h5_file, hdf_group, out_dir, timeseries_locations, start_date):
         i += 1
 
     # time series plots.
-    print 'time series plot'
-    timeseriesplot(datetimes, data, Npoints, row, col, elevation)
+    # print 'time series plot'
+    return timeseriesplot(datetimes, data, Npoints, row, col, elevation)
 
 def plot2d(h5_file, time_interval, time, hdf_group, out_dir):
 
