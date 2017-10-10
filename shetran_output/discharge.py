@@ -141,7 +141,7 @@ def plot_exceedance(in_file, out_dir=None):
 
     qList = percentilesList
     qList.reverse()
-    plt.figure(dpi=300, figsize=[12.0, 5.0])
+    plt.figure(figsize=[12.0, 5.0], dpi=300)
     plt.plot(qList, obsPercentiles, c="b", ls="-")
     plt.plot(qList, simPercentiles, c="r", ls="-", alpha=0.75)
     plt.title("Flow duration curve of observed vs simulated flows")

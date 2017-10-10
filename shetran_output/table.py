@@ -98,7 +98,6 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
         plt.xticks(rotation=70)
         plt.gca().invert_yaxis()
         ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
-        plt.savefig(out_dir + '/' + 'watertable-timeseries.png')
         if out_dir:
             if not os.path.exists(out_dir):
                 os.mkdir(out_dir)
