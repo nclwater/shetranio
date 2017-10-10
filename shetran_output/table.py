@@ -14,12 +14,12 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
             Args:
                 h5_file (str): Path to the input HDF5 file.
                 hdf_group (str): Name of HDF file output group.
-                out_dir (str): Folder to save the output PNG into.
                 timeseries_locations (str): Path to locations text file.
                 start_date (datetime.datetime): Datetime object set to start of simulation period.
+                out_dir (str, optional): Folder to save an output PNG into. Defaults to None.
 
             Returns:
-                None
+                Plot object
 
     """
     def getElevations():
@@ -178,19 +178,18 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
     return timeseriesplot(datetimes, data, Npoints, row, col, elevation)
 
 def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=0, time_interval=1):
-
     """Using HDF file, produces 2d plots of phreatic surface depth at regular timesteps
 
         Args:
             h5_file (str): Path to the input HDF5 file.
-            time_interval (int): time interval between 2d plots.
-                A value of 365 produces a plot every 365 output timesteps.
-            time (int): Starting time for 2d plot. A value of 10 starts at output timestep 10.
             hdf_group (str): Name of HDF file output group.
-            out_dir (str): Folder to save the output PNG into.
+            out_dir (str, optional): Folder to save an output PNG into. Defaults to None.
+            interactive (bool, optional): Whether to return an ipython slider with the plot. Defaults to True.
+            timestep (int, optional): The index of the timestep to create the plot at. Defaults to 0.
+            time_interval (int, optional): Number of timesteps between plots. Defaults to 1.
 
         Returns:
-            None
+            Plot object with optional ipython slider
 
     """
 
@@ -353,10 +352,12 @@ def plot3d(h5_file, hdf_group, out_dir=None, interactive=True, azi=0):
             Args:
                 h5_file (str): Path to the input HDF5 file.
                 hdf_group (str): Name of HDF file output group.
-                out_dir (str): Folder to save the output PNG into.
+                out_dir (str, optional): Folder to save an output PNG into. Defaults to None.
+                interactive (bool, optional): Whether to return an ipython slider with the plot. Defaults to True.
+                azi (int, optional): The azimuth used to create the plot. Defaults to 0.
 
             Returns:
-                None
+                Plot object with optional ipython slider
 
      """
     assert 0<=azi<=360, 'Azimuth must be between 0 and 360'

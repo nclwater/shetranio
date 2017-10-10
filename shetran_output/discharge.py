@@ -11,7 +11,7 @@ def plot(in_file, out_dir):
                 out_dir (str): Folder to save the output PNG into.
 
             Returns:
-                None
+                Plot object
 
     """
     pass
@@ -39,14 +39,14 @@ def read(in_file):
 
 
 def timeseries(in_file, out_dir=None):
-    """Saves a plot of observed verses simulated discharge to a PNG file
+    """Creates a plot of observed verses simulated discharge
 
     Args:
         in_file (str): Path to the input CSV file.
         out_dir (str): Folder to save the output PNG into.
 
     Returns:
-        float: Nash-Sutcliffe Efficiency.
+        Plot object
 
     """
 
@@ -125,7 +125,7 @@ def plot_exceedance(in_file, out_dir=None):
             out_dir (str): Folder to save the output PNG into.
 
         Returns:
-            None
+            Plot object
 
         """
     percentilesList, obsPercentiles, simPercentiles = get_percentiles(in_file)
@@ -159,7 +159,7 @@ def plot_water_balance(in_file, out_dir=None):
             out_dir (str): Folder to save the output PNG into.
 
         Returns:
-            None
+            Plot object
 
         """
     def doWaterBalance(obsOrSim):

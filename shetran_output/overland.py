@@ -10,12 +10,12 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
         Args:
             h5_file (str): Path to the input HDF5 file.
             hdf_group (str): Name of HDF file output group.
-            out_dir (str): Folder to save the output PNG into.
             timeseries_locations (str): Path to locations text file.
             start_date (datetime.datetime): Datetime object set to start of simulation period.
+            out_dir (str, optional): Folder to save an output PNG into. Defaults to None.
 
         Returns:
-            None
+            Plot object
 
     """
 
