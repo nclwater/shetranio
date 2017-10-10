@@ -20,7 +20,7 @@ def plot_points(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None
                     timestep (int, optional): The index of the timestep to create the plot at. Defaults to 0.
 
                 Returns:
-                     Plot object with optional ipython slider
+                     None
 
     """
     def getElevations():
@@ -143,15 +143,14 @@ def plot_points(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None
             plt.show()
             # time += 1
         if interactive:
-            return interact(plot, time=IntSlider(value=timestep,
-                                                         min=0,
-                                                         max=ntimes-1,
-                                                         step=1,
-                                                         continuous_update=False,
-                                                         description=' ',
-                                                         readout_format='',
-                                                         layout=Layout(width='100%')),
-                            )
+            interact(plot, time=IntSlider(value=timestep,
+                                         min=0,
+                                         max=ntimes-1,
+                                         step=1,
+                                         continuous_update=False,
+                                         description=' ',
+                                         readout_format='',
+                                         layout=Layout(width='100%')))
         else:
             plot(timestep)
 
@@ -276,7 +275,7 @@ def plot_times(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None,
                         point (int, optional): The index of the point to create the plot at. Defaults to 0.
 
                     Returns:
-                        Plot object with optional ipython slider
+                        None
 
                 """
 
@@ -403,15 +402,14 @@ def plot_times(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None,
                 # time += 1
 
         if interactive:
-            return interact(plot, point=IntSlider(value=point,
-                                                 min=0,
-                                                 max=Npoints-1,
-                                                 step=1,
-                                                 continuous_update=False,
-                                                 description=' ',
-                                                 readout_format='',
-                                                 layout=Layout(width='100%')),
-                            )
+            interact(plot, point=IntSlider(value=point,
+                                         min=0,
+                                         max=Npoints-1,
+                                         step=1,
+                                         continuous_update=False,
+                                         description=' ',
+                                         readout_format='',
+                                         layout=Layout(width='100%')))
         else:
             plot(point)
 

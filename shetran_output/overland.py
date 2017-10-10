@@ -15,7 +15,7 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
             out_dir (str, optional): Folder to save an output PNG into. Defaults to None.
 
         Returns:
-            Plot object
+            None
 
     """
 
@@ -202,4 +202,4 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
 
     # time series plots.
     # print 'time series plot'
-    return timeseriesplot(datetimes, data2, Npoints, OverlandLoc, ElevationLink)
+    timeseriesplot(datetimes, data2, Npoints, OverlandLoc, ElevationLink)

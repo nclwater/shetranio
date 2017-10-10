@@ -19,7 +19,7 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
                 out_dir (str, optional): Folder to save an output PNG into. Defaults to None.
 
             Returns:
-                Plot object
+                None
 
     """
     def getElevations():
@@ -175,7 +175,7 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
 
     # time series plots.
     # print 'time series plot'
-    return timeseriesplot(datetimes, data, Npoints, row, col, elevation)
+    timeseriesplot(datetimes, data, Npoints, row, col, elevation)
 
 def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=0, time_interval=1):
     """Using HDF file, produces 2d plots of phreatic surface depth at regular timesteps
@@ -189,7 +189,7 @@ def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=0, time_
             time_interval (int, optional): Number of timesteps between plots. Defaults to 1.
 
         Returns:
-            Plot object with optional ipython slider
+            None
 
     """
 
@@ -297,7 +297,7 @@ def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=0, time_
 
             # time += timeinterval
         if interactive:
-            return interact(plot, current_time=IntSlider(value=timestep,
+            interact(plot, current_time=IntSlider(value=timestep,
                                                          min=0,
                                                          max=ntimes-1,
                                                          step=time_interval,
@@ -357,7 +357,7 @@ def plot3d(h5_file, hdf_group, out_dir=None, interactive=True, azi=0):
                 azi (int, optional): The azimuth used to create the plot. Defaults to 0.
 
             Returns:
-                Plot object with optional ipython slider
+                None
 
      """
     assert 0<=azi<=360, 'Azimuth must be between 0 and 360'
@@ -493,20 +493,17 @@ def plot3d(h5_file, hdf_group, out_dir=None, interactive=True, azi=0):
             # azi += 10
             # return
         if interactive:
-            return interact(plot, azi=IntSlider(value=azi,
-                                                         min=0,
-                                                         max=360,
-                                                         step=10,
-                                                         continuous_update=False,
-                                                         description=' ',
-                                                         readout_format='',
-                                                         layout=Layout(width='100%')),
-                            )
+            interact(plot, azi=IntSlider(value=azi,
+                                         min=0,
+                                         max=360,
+                                         step=10,
+                                         continuous_update=False,
+                                         description=' ',
+                                         readout_format='',
+                                         layout=Layout(width='100%')))
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    # make folder for graphs and outputs
 
 
     fh5 = h5py.File(h5_file, 'r')

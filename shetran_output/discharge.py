@@ -46,7 +46,7 @@ def timeseries(in_file, out_dir=None):
         out_dir (str): Folder to save the output PNG into.
 
     Returns:
-        Plot object
+        None
 
     """
 
@@ -78,6 +78,15 @@ def timeseries(in_file, out_dir=None):
 
 
 def get_nse(in_file):
+    """Calculates the Nash Sutcliffe Efficiency of observed vs simulated discharge.
+
+        Args:
+            in_file (str): Path to the input CSV file.
+
+        Returns:
+            float: Value of NSE
+
+        """
     obs, sim, days = read(in_file)
 
     diffList = []
@@ -125,7 +134,7 @@ def plot_exceedance(in_file, out_dir=None):
             out_dir (str): Folder to save the output PNG into.
 
         Returns:
-            Plot object
+            None
 
         """
     percentilesList, obsPercentiles, simPercentiles = get_percentiles(in_file)
@@ -159,7 +168,7 @@ def plot_water_balance(in_file, out_dir=None):
             out_dir (str): Folder to save the output PNG into.
 
         Returns:
-            Plot object
+            None
 
         """
     def doWaterBalance(obsOrSim):
