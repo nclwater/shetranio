@@ -259,7 +259,7 @@ def plot_points(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None
     timeseriesplot(moisturetimes, depth, data, ntimes, Npoints, row, col, elevation, minth, maxth, n_layers)
 
 
-def plot_times(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
+def plot_times(h5_file, hdf_group, timeseries_locations, n_layers, interactive=True, out_dir=None, point=0):
     """Using HDF file produces soil moisture profile plots of particular points.
                 Each figure shows a single points with all times.
                 There is a separate figure for each point.
@@ -366,11 +366,12 @@ def plot_times(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
         return moisturetimes
 
     def timeseriesplot(moisturetimes, depth, data, ntimes, Npoints, row, col, elevation, minth, maxth, userspecNlayers):
-        points = 0
-        while points < Npoints:
-            if elevation[points] != -1:
+        # points = 0
+        # while points < Npoints:
+        def plot(point):
+            if elevation[point] != -1:
                 plotlabel = np.empty(ntimes, dtype=object)
-                fig = plt.figure(figsize=[12.0, 12.0])
+                plt.figure(figsize=[12.0, 5.0], dpi=300)
                 plt.subplots_adjust(bottom=0.1, right=0.75)
                 ax = plt.subplot(1, 1, 1)
                 ax.set_ylabel('Depth(m)')
@@ -379,21 +380,40 @@ def plot_times(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
                 time = 1
                 while time < ntimes:
                     plotlabel[time] = 'Time=' + str(int(moisturetimes[time])) + ' hours'
-                    ax.plot(data[0:userspecNlayers - 1, time, points], depth[0:userspecNlayers - 1],
+                    ax.plot(data[0:userspecNlayers - 1, time, point], depth[0:userspecNlayers - 1],
                             label=plotlabel[time])
                     time += 1
                 axes = plt.gca()
                 axes.set_xlim([minth, maxth])
                 plt.gca().invert_yaxis()
                 legend = ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
-                fig.suptitle(
-                    "Profile. " + 'Col=' + str(int(col[points])) + ' Row=' + str(int(row[points])) + ' Elev= %7.2f m' %
-                    elevation[points], fontsize=14, fontweight='bold')
-                plt.savefig(out_dir + '/' + 'profile' + str(points) + '.png')
-                plt.close()
-            points += 1
+                plt.title(
+                    "Profile. " + 'Col=' + str(int(col[point])) + ' Row=' + str(int(row[point])) + ' Elev= %7.2f m' %
+                    elevation[point])
 
-        return
+                if out_dir:
+                    if not os.path.exists(out_dir):
+                        os.mkdir(out_dir)
+                    plt.savefig(out_dir + '/' + 'profile' + str(point) + '.png')
+                plt.show()
+                # time += 1
+
+        if interactive:
+            return interact(plot, point=IntSlider(value=point,
+                                                 min=0,
+                                                 max=Npoints-1,
+                                                 step=1,
+                                                 continuous_update=False,
+                                                 description=' ',
+                                                 readout_format='',
+                                                 layout=Layout(width='100%')),
+                            )
+        else:
+            plot(point)
+
+            # points += 1
+
+        # return
 
     def minmaxmoisture(data, ntimes, Npoints):
         minth = 99999.0
@@ -425,9 +445,9 @@ def plot_times(h5_file, hdf_group, out_dir, timeseries_locations, n_layers):
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    # make folder for graphs and outputs
-    if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
+    # # make folder for graphs and outputs
+    # if not os.path.exists(out_dir):
+    #     os.mkdir(out_dir)
 
     # number of points (Npoints) in time series file
     locations = open(timeseries_locations, "r")
