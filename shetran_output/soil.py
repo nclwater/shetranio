@@ -13,12 +13,14 @@ def plot_points(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None
                 Args:
                     h5_file (str): Path to the input HDF5 file.
                     hdf_group (str): Name of HDF file output group.
-                    out_dir (str): Folder to save the output PNG into.
                     timeseries_locations (str): Points that you want time series inputs for.
                     n_layers (int): Number of soil layers needing output for. Starting from the top.
+                    out_dir (str, optional): Folder to save an output PNG into. Defaults to None.
+                    interactive (bool, optional): Whether to return an ipython slider with the plot. Defaults to True.
+                    timestep (int, optional): The index of the timestep to create the plot at. Defaults to 0.
 
                 Returns:
-                    None
+                     Plot object with optional ipython slider
 
     """
     def getElevations():
@@ -259,7 +261,7 @@ def plot_points(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None
     timeseriesplot(moisturetimes, depth, data, ntimes, Npoints, row, col, elevation, minth, maxth, n_layers)
 
 
-def plot_times(h5_file, hdf_group, timeseries_locations, n_layers, interactive=True, out_dir=None, point=0):
+def plot_times(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None, interactive=True, point=0):
     """Using HDF file produces soil moisture profile plots of particular points.
                 Each figure shows a single points with all times.
                 There is a separate figure for each point.
@@ -267,12 +269,14 @@ def plot_times(h5_file, hdf_group, timeseries_locations, n_layers, interactive=T
                     Args:
                         h5_file (str): Path to the input HDF5 file.
                         hdf_group (str): Name of HDF file output group.
-                        out_dir (str): Folder to save the output PNG into.
                         timeseries_locations (str): Points that you want time series inputs for.
                         n_layers (int): Number of soil layers needing output for. Starting from the top.
+                        out_dir (str, optional): Folder to save an output PNG into. Defaults to None.
+                        interactive (bool, optional): Whether to return an ipython slider with the plot. Defaults to True.
+                        point (int, optional): The index of the point to create the plot at. Defaults to 0.
 
                     Returns:
-                        None
+                        Plot object with optional ipython slider
 
                 """
 
