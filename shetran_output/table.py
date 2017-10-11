@@ -176,7 +176,7 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
     # print 'time series plot'
     timeseriesplot(datetimes, data, Npoints, row, col, elevation)
 
-def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=0, time_interval=1):
+def plot2d(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, timestep=0, time_interval=1):
     """Using HDF file, produces 2d plots of phreatic surface depth at regular timesteps
 
         Args:
@@ -192,6 +192,16 @@ def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=0, time_
 
     """
 
+    def get_grid():
+        with open(grid) as f:
+            lines = [f.readline() for _ in range(4)]
+
+        geo = {'ncols':lines[0].split()[1],
+               'nrows':lines[1].split()[1],
+               'xll':lines[2].split()[1],
+               'yll':lines[3].split()[1]}
+
+        return geo
     # assume grid size is the same everywhere (this is not necessarily true but is usual)
     def getGridSize():
 
@@ -248,7 +258,6 @@ def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=0, time_
 
                 # inputs[nrows:ncols:time] ie [j,i,:]
                 data = val[1:nrows, 1:ncols, t]
-
         return data
 
     def getpsltimes(HDFgroup):
@@ -278,7 +287,24 @@ def plot2d(h5_file, hdf_group, out_dir=None, interactive=True, timestep=0, time_
             ax.axis([0, GridSize * ncols, 0, GridSize * nrows])
             ax.set_xlabel('Distance(m)')
             ax.set_ylabel('Distance(m)')
-            cax = ax.imshow(h5datapsl2d, extent=[0, GridSize * ncols, 0, GridSize * nrows], interpolation='none',
+            ax = plt.subplot(1, 1, 1)
+            xmin = 0
+            xmax = GridSize * ncols
+            ymin = 0
+            ymax = GridSize * nrows
+            if grid is not None:
+                g = get_grid()
+                xmin = int(g['xll'])-GridSize
+                xmax += xmin+GridSize
+                ymin = int(g['yll'])-GridSize
+                ymax += ymin+GridSize
+                ax.set_xlim(xmin, xmax)
+                ax.set_ylim(ymin, ymax)
+                ax.set_xlabel('OSGB X Coordinate (m)')
+                ax.set_ylabel('OSGB Y Coordinate (m)')
+            cax = ax.imshow(h5datapsl2d,
+                            extent=[xmin, xmax, ymin, ymax],
+                            interpolation='none',
                             vmin=minpsl, vmax=maxpsl, cmap='Blues_r')
             # cbar = fig.colorbar(cax,ticks=[-1,0,1,2],fraction=0.04, pad=0.10)
             fig.colorbar(cax, fraction=0.04, pad=0.10)
