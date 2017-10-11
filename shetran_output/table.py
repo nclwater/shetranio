@@ -369,7 +369,7 @@ def plot2d(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, timest
     # print '2d plot'
     return TwoDPlot(ntimes, nrows, ncols, minpsl, maxpsl, GridSize, hdf_group)
 
-def plot3d(h5_file, hdf_group, out_dir=None, interactive=True, azi=0):
+def plot3d(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, azi=0):
     """Using HDF file, produces 3d plots of water table or phreatic surface depth.
         The face colour corresponds to the phreatic depth.
         By default it is produced at the final timestep (ntimes) with views every 10 degrees.
@@ -386,6 +386,17 @@ def plot3d(h5_file, hdf_group, out_dir=None, interactive=True, azi=0):
 
      """
     assert 0<=azi<=360, 'Azimuth must be between 0 and 360'
+
+    def get_grid():
+        with open(grid) as f:
+            lines = [f.readline() for _ in range(4)]
+
+        geo = {'ncols':lines[0].split()[1],
+               'nrows':lines[1].split()[1],
+               'xll':lines[2].split()[1],
+               'yll':lines[3].split()[1]}
+
+        return geo
 
     # assume grid size is the same everywhere (this is not necessarily true but is usual)
     def getGridSize():
@@ -463,12 +474,7 @@ def plot3d(h5_file, hdf_group, out_dir=None, interactive=True, azi=0):
 
     def ThreeDPlot(ntimes, nrows, ncols, GridSize, mindem, maxdem, dem, HDFgroup, outfilefolder):
 
-        X = np.arange(0, (ncols - 1) * GridSize, GridSize)
-        # print X.shape
-        # X = np.arange(1,ncols)
-        # print X.shape
-        Y = np.arange(0, (nrows - 1) * GridSize, GridSize)
-        X, Y = np.meshgrid(X, Y)
+
 
         # repeated to produce a plot for each direction (azi)
         # print '3d plot'
@@ -478,8 +484,21 @@ def plot3d(h5_file, hdf_group, out_dir=None, interactive=True, azi=0):
         def plot(azi):
             fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
 
+
             # ax = plt.subplot(1, 1, 1, projection='3d')
             ax = Axes3D(fig)
+            ax.set_xlabel('Distance(m)')
+            ax.set_ylabel('Distance(m)')
+            ax.set_zlabel('Elevation(m)')
+            X = np.arange(0, (ncols - 1) * GridSize, GridSize)
+            Y = np.arange(0, (nrows - 1) * GridSize, GridSize)
+            if grid is not None:
+                g = get_grid()
+                X += int(g['xll'])
+                Y += int(g['yll'])
+                ax.set_xlabel('OSGB X Coordinate (m)')
+                ax.set_ylabel('OSGB Y Coordinate (m)')
+            X, Y = np.meshgrid(X, Y)
             plt.title('Water Table Depth (m below ground)')
             h5datapsl = getpsl(ntimes - 1, nrows, ncols, HDFgroup)
             r1 = h5datapsl / h5datapsl.max()
@@ -492,9 +511,7 @@ def plot3d(h5_file, hdf_group, out_dir=None, interactive=True, azi=0):
             surf = ax.plot_surface(Y, X, dem, rstride=1, cstride=1, facecolors=cm.Blues_r(r1), shade=False)
             ax.view_init(elev=20., azim=azi)
             ax.set_zlim(mindem, maxdem)
-            ax.set_xlabel('Distance(m)')
-            ax.set_ylabel('Distance(m)')
-            ax.set_zlabel('Elevation(m)')
+
 
             # ax.yaxis.set_major_locator(LinearLocator(4))
             # ax.xaxis.set_major_locator(LinearLocator(4))
