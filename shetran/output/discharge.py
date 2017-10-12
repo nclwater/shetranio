@@ -10,16 +10,11 @@ def _read(in_file):
     sim = []
     days = []
     for line in table:
-        lineList = line.rstrip().split(",")
-        dayVal = lineList[0]
-        obsVal = lineList[1]
-        simVal = lineList[2]
+        l = line.rstrip().split(",")
 
-        obs.append(float(obsVal))
-
-        sim.append(float(simVal))
-
-        days.append(datetime.strptime(dayVal, '%d/%m/%Y'))
+        obs.append(float(l[1]))
+        sim.append(float(l[2]))
+        days.append(datetime.strptime(l[0], '%d/%m/%Y'))
 
     table.close()
     return obs, sim, days
@@ -163,32 +158,24 @@ def plot_water_balance(in_file, out_dir=None):
             None
 
         """
+    obs, sim, days = _read(in_file)
 
-    with open(in_file) as run_file:
+    obs_months = [[] for _ in range(12)]
+    sim_months = [[] for _ in range(12)]
 
-        lines = run_file.readlines()
+    for idx in range(len(obs)):
 
-        obs = [[] for _ in range(12)]
-        sim = [[] for _ in range(12)]
+        obs_months[days[idx].month-1].append(obs[idx])
+        sim_months[days[idx].month-1].append(sim[idx])
 
-        day, month, year = [int(s) for s in lines[1].split(',')[0].split('/')]
-        d = datetime(year, month, day)
-
-        for line in lines[1:]:
-
-            obs[d.month-1].append(float(line.rstrip().split(",")[1]))
-            sim[d.month-1].append(float(line.rstrip().split(",")[2]))
-
-            d += timedelta(days=1)
-
-    obs = [np.mean(month) for month in obs]
-    sim = [np.mean(month) for month in sim]
+    obs_months = [np.mean(month) for month in obs_months]
+    sim_months = [np.mean(month) for month in sim_months]
 
     months = range(1,13)
 
     plt.figure(dpi=300, figsize=[12.0, 5.0])
-    plt.plot(months, obs, c="b", ls="-")
-    plt.plot(months, sim, c="r", ls="-", alpha=0.75)
+    plt.plot(months, obs_months, c="b", ls="-")
+    plt.plot(months, sim_months, c="r", ls="-", alpha=0.75)
     plt.title("Monthlys Average Flows")
     plt.ylabel("Flow (m" + r'$^3$' + "/s)")
     plt.xlabel("Month")
