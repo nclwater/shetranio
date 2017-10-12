@@ -63,7 +63,6 @@ def plot_time_series(in_file, out_dir=None):
     plt.show()
 
 
-
 def get_nse(in_file):
     """Calculates the Nash Sutcliffe Efficiency of observed vs simulated discharge.
 
@@ -104,11 +103,8 @@ def get_percentiles(in_file, out_dir=None):
 
     obs, sim, days = _read(in_file)
 
-    obs_percentiles = []
-    sim_percentiles = []
-    for perc in percentiles_list:
-        obs_percentiles.append(np.percentile(obs, perc))
-        sim_percentiles.append(np.percentile(sim, perc))
+    obs_percentiles = [np.percentile(obs, percentile) for percentile in percentiles_list]
+    sim_percentiles = [np.percentile(sim, percentile) for percentile in percentiles_list]
 
     if out_dir:
 
@@ -120,8 +116,6 @@ def get_percentiles(in_file, out_dir=None):
         percentiles_file.close()
 
     return percentiles_list, obs_percentiles, sim_percentiles
-
-
 
 
 def plot_exceedance(in_file, out_dir=None):
@@ -171,89 +165,28 @@ def plot_water_balance(in_file, out_dir=None):
             None
 
         """
-    def doWaterBalance(obsOrSim):
-        """Calculates the water balance of either the observed or simulated values
 
-        Args:
-                in_file (str): Path to the input CSV file.
-                obsOrSim (str): Either 'o' (observed) or 's' (simulated).
+    with open(in_file) as run_file:
 
-            Returns:
-                A list of monthly means Jan-Dec
+        lines = run_file.readlines()
 
-        """
+        obs = [[] for _ in range(12)]
+        sim = [[] for _ in range(12)]
 
-        if obsOrSim == "o":
-            x = 1
-        elif obsOrSim == "s":
-            x = 2
+        day, month, year = [int(s) for s in lines[1].split(',')[0].split('/')]
+        d = datetime(year, month, day)
 
-        runFile = open(in_file)
-        runFile.readline()
+        for line in lines[1:]:
 
-        runJanValsList = []
-        runFebValsList = []
-        runMarValsList = []
-        runAprValsList = []
-        runMayValsList = []
-        runJunValsList = []
-        runJulValsList = []
-        runAugValsList = []
-        runSepValsList = []
-        runOctValsList = []
-        runNovValsList = []
-        runDecValsList = []
+            obs[d.month-1].append(float(line.rstrip().split(",")[1]))
+            sim[d.month-1].append(float(line.rstrip().split(",")[2]))
 
-        d = datetime(1990, 1, 1)
+            d += timedelta(days=1)
 
-        for line in runFile:
-            if d.month == 1:
-                runJanValsList.append(float(line.rstrip().split(",")[x]))
-            if d.month == 2:
-                runFebValsList.append(float(line.rstrip().split(",")[x]))
-            if d.month == 3:
-                runMarValsList.append(float(line.rstrip().split(",")[x]))
-            if d.month == 4:
-                runAprValsList.append(float(line.rstrip().split(",")[x]))
-            if d.month == 5:
-                runMayValsList.append(float(line.rstrip().split(",")[x]))
-            if d.month == 6:
-                runJunValsList.append(float(line.rstrip().split(",")[x]))
-            if d.month == 7:
-                runJulValsList.append(float(line.rstrip().split(",")[x]))
-            if d.month == 8:
-                runAugValsList.append(float(line.rstrip().split(",")[x]))
-            if d.month == 9:
-                runSepValsList.append(float(line.rstrip().split(",")[x]))
-            if d.month == 10:
-                runOctValsList.append(float(line.rstrip().split(",")[x]))
-            if d.month == 11:
-                runNovValsList.append(float(line.rstrip().split(",")[x]))
-            if d.month == 12:
-                runDecValsList.append(float(line.rstrip().split(",")[x]))
+    obs = [np.mean(month) for month in obs]
+    sim = [np.mean(month) for month in sim]
 
-            d = d + timedelta(days=1)
-
-        runFile.close()
-
-        dataList = [np.mean(runJanValsList), np.mean(runFebValsList)
-            , np.mean(runMarValsList)
-            , np.mean(runAprValsList)
-            , np.mean(runMayValsList)
-            , np.mean(runJunValsList)
-            , np.mean(runJulValsList)
-            , np.mean(runAugValsList)
-            , np.mean(runSepValsList)
-            , np.mean(runOctValsList)
-            , np.mean(runNovValsList)
-            , np.mean(runDecValsList)]
-
-        return dataList
-
-    obs = doWaterBalance("o")
-    sim = doWaterBalance("s")
-
-    months = [i + 1 for i in range(12)]
+    months = range(1,13)
 
     plt.figure(dpi=300, figsize=[12.0, 5.0])
     plt.plot(months, obs, c="b", ls="-")
@@ -266,23 +199,10 @@ def plot_water_balance(in_file, out_dir=None):
     line1 = plt.Line2D(range(10), range(10), color="b")
     line2 = plt.Line2D(range(10), range(10), color="r")
     plt.legend((line1, line2), groups, numpoints=1, loc=1, prop={'size': 8})
+
     if out_dir:
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
         plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_Monthly_Water_Balance.png")
     plt.show()
-
-
-
-# make folder for graphs and outputs
-# if not os.path.exists(out_dir):
-#     os.mkdir(out_dir)
-
-# NSE = timeSeriesPlotter()
-
-# exceedanceCurve()
-# wbGraph()
-#
-# print "NSE = ", NSE
-
 
