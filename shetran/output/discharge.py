@@ -176,7 +176,7 @@ def plot_water_balance(in_file, out_dir=None):
     plt.figure(dpi=300, figsize=[12.0, 5.0])
     plt.plot(months, obs_months, c="b", ls="-")
     plt.plot(months, sim_months, c="r", ls="-", alpha=0.75)
-    plt.title("Monthlys Average Flows")
+    plt.title("Monthly Average Flows")
     plt.ylabel("Flow (m" + r'$^3$' + "/s)")
     plt.xlabel("Month")
     plt.grid(True)
