@@ -3,19 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-def plot(in_file, out_dir):
-    """Produces graphs of discharge, exceedance and water balance.
-
-            Args:
-                in_file (str): Path to the input CSV file.
-                out_dir (str): Folder to save the output PNG into.
-
-            Returns:
-                Plot object
-
-    """
-    pass
-
 def read(in_file):
     table = open(in_file, "r")
     table.readline()
