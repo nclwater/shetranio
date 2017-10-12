@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-def read(in_file):
+def _read(in_file):
     table = open(in_file, "r")
     table.readline()
     obs = []
@@ -25,7 +25,7 @@ def read(in_file):
     return obs, sim, days
 
 
-def timeseries(in_file, out_dir=None):
+def plot_time_series(in_file, out_dir=None):
     """Creates a plot of observed verses simulated discharge
 
     Args:
@@ -37,7 +37,7 @@ def timeseries(in_file, out_dir=None):
 
     """
 
-    obs, sim, days = read(in_file)
+    obs, sim, days = _read(in_file)
 
     # plot the graph!
     # fig, ax = plt.subplots()
@@ -74,7 +74,7 @@ def get_nse(in_file):
             float: Value of NSE
 
         """
-    obs, sim, days = read(in_file)
+    obs, sim, days = _read(in_file)
 
     diffList = []
     obsDiffList = []
@@ -87,28 +87,39 @@ def get_nse(in_file):
 
 
 def get_percentiles(in_file, out_dir=None):
-    percentilesList = range(5, 100, 5)
-    percentilesList.append(99)
-    percentilesList.insert(0, 1)
+    """Calculates percentiles of observed vs simulated discharge at 0, 1, 5-100 in steps of 5 and 99.
 
-    obs, sim, days = read(in_file)
+            Args:
+                in_file (str): Path to the input CSV file.
+                out_dir (str,optional): Path to output CSV file.
 
-    obsPercentiles = []
-    simPercentiles = []
-    for perc in percentilesList:
-        obsPercentiles.append(np.percentile(obs, perc))
-        simPercentiles.append(np.percentile(sim, perc))
+            Returns:
+                tuple: First element is a list of percentiles, second is the observed percentiles
+                    and third is the simulated percentiles
+
+    """
+    percentiles_list = range(5, 100, 5)
+    percentiles_list.append(99)
+    percentiles_list.insert(0, 1)
+
+    obs, sim, days = _read(in_file)
+
+    obs_percentiles = []
+    sim_percentiles = []
+    for perc in percentiles_list:
+        obs_percentiles.append(np.percentile(obs, perc))
+        sim_percentiles.append(np.percentile(sim, perc))
 
     if out_dir:
 
-        percentilesFile = open(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_percentiles.csv", "w")
-        percentilesFile.write("Percentile,Observed,Simulated\n")
-        for x in range(len(percentilesList)):
-            percentilesFile.write(
-                str(percentilesList[x]) + "," + str(obsPercentiles[x]) + "," + str(simPercentiles[x]) + "\n")
-        percentilesFile.close()
+        percentiles_file = open(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_percentiles.csv", "w")
+        percentiles_file.write("Percentile,Observed,Simulated\n")
+        for x in range(len(percentiles_list)):
+            percentiles_file.write(
+                str(percentiles_list[x]) + "," + str(obs_percentiles[x]) + "," + str(sim_percentiles[x]) + "\n")
+        percentiles_file.close()
 
-    return percentilesList, obsPercentiles, simPercentiles
+    return percentiles_list, obs_percentiles, sim_percentiles
 
 
 
