@@ -39,8 +39,6 @@ def plot_time_series(in_file, out_dir=None):
 
     obs, sim, days = _read(in_file)
 
-    # plot the graph!
-    # fig, ax = plt.subplots()
     plt.figure(dpi=300, figsize=[12.0, 5.0])
     plt.subplots_adjust(bottom=0.2)
     plt.plot_date(x=days, y=obs, fmt="b-")
