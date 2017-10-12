@@ -135,21 +135,23 @@ def plot_exceedance(in_file, out_dir=None):
             None
 
         """
-    percentilesList, obsPercentiles, simPercentiles = get_percentiles(in_file)
+    percentiles_list, obs_percentiles, sim_percentiles = get_percentiles(in_file)
 
-    qList = percentilesList
-    qList.reverse()
+    percentiles_list.reverse()
+
     plt.figure(figsize=[12.0, 5.0], dpi=300)
-    plt.plot(qList, obsPercentiles, c="b", ls="-")
-    plt.plot(qList, simPercentiles, c="r", ls="-", alpha=0.75)
+    plt.plot(percentiles_list, obs_percentiles, c="b", ls="-")
+    plt.plot(percentiles_list, sim_percentiles, c="r", ls="-", alpha=0.75)
     plt.title("Flow duration curve of observed vs simulated flows")
     plt.ylabel("Flow (m" + r'$^3$' + "/s)")
     plt.xlabel("% Of the time indicated discharge was equalled or exceeded")
     plt.grid(True)
+
     groups = ("Observed", "Simulated")
     line1 = plt.Line2D(range(10), range(10), color="b")
     line2 = plt.Line2D(range(10), range(10), color="r")
     plt.legend((line1, line2), groups, numpoints=1, loc=1, prop={'size': 8})
+
     if out_dir:
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
