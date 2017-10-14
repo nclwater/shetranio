@@ -30,14 +30,13 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
     # find location and elevation of each channel link
     # river links in Shetran flow along the edge of the grid squares. The number starts at the bottom left then considers each row in turn going upwards.
     # There are north-south and east-west channels
-    ColRowLocation1, ColRowLocation2, ColRowLocation3, ColRowLocation4 = h5.number[:,:,5], h5.number[:,:,6], h5.number[:,:,7], h5.number[:,:,8]
+    ColRowLocation1, ColRowLocation2 = h5.number[:,:,5], h5.number[:,:,6]
+
     Elevation1, Elevation2 = h5.surface_elevation[:,:,5], h5.surface_elevation[:,:,6]
     elevation_link = np.zeros(shape=number_of_points)
     for i in range(number_of_points):
         p1 = np.where(ColRowLocation1 == int(points[i]))
         p2 = np.where(ColRowLocation2 == int(points[i]))
-        p3 = np.where(ColRowLocation3 == int(points[i]))
-        p4 = np.where(ColRowLocation4 == int(points[i]))
         if p1[0] > 0:
             elevation_link[i] = Elevation1[p1]
             # print str(int(OverlandLoc[i])) + ' is a E-W channel on column ' + str(p1[1])[1:-1] + ' between rows ' + str(
