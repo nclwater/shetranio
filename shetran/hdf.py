@@ -53,10 +53,16 @@ class Hdf:
         return self.number[y_index,x_index,0]
 
 
-    def get_element_location(self, dem_file, element_number):
+    def get_channel_link_location(self, dem_file, element_number):
         d = dem.Dem(dem_file)
 
-        index = np.where(self.number[:, :, 0] == element_number)
+        index_north = np.where(self.number[:, :, 5] == element_number)
+        index_west = np.where(self.number[:, :, 6] == element_number)
+        if len(index_north[0])>0:
+            index = index_north
+        else:
+            index = index_west
+        print(index)
 
 
         x_coordinates = np.array([d.x_lower_left+i*d.cell_size for i in range(d.number_of_columns)])
@@ -66,4 +72,17 @@ class Hdf:
         y_location = y_coordinates[int(index[0])]
 
         return x_location,y_location
+
+    def get_element_location(self, dem_file, element_number):
+        d = dem.Dem(dem_file)
+
+        index = np.where(self.number[:, :, 0] == element_number)
+
+        x_coordinates = np.array([d.x_lower_left + i * d.cell_size for i in range(d.number_of_columns)])
+        y_coordinates = np.array([d.y_lower_left + i * d.cell_size for i in range(d.number_of_rows)])
+
+        x_location = x_coordinates[int(index[1])]
+        y_location = y_coordinates[int(index[0])]
+
+        return x_location, y_location
 
