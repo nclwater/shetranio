@@ -33,22 +33,21 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
     ColRowLocation1, ColRowLocation2 = h5.number[:,:,5], h5.number[:,:,6]
 
     Elevation1, Elevation2 = h5.surface_elevation[:,:,5], h5.surface_elevation[:,:,6]
-    elevation_link = np.zeros(shape=number_of_points)
-    for i in range(number_of_points):
-        p1 = np.where(ColRowLocation1 == int(points[i]))
-        p2 = np.where(ColRowLocation2 == int(points[i]))
+    elevation_link = []
+    for point in points:
+        p1 = np.where(ColRowLocation1 == point)
+        p2 = np.where(ColRowLocation2 == point)
         if p1[0] > 0:
-            elevation_link[i] = Elevation1[p1]
+            elevation_link.append(Elevation1[p1])
             # print str(int(OverlandLoc[i])) + ' is a E-W channel on column ' + str(p1[1])[1:-1] + ' between rows ' + str(
             #     p3[0])[1:-1] + ' and ' + str(p1[0])[1:-1] + ' with elevation = ' + str(Elevation1[p1])[1:-1]
         elif p2[0] > 0:
-            elevation_link[i] = Elevation2[p2]
+            elevation_link.append(Elevation2[p2])
             # print str(int(OverlandLoc[i])) + ' is a N-S channel on row ' + str(p2[0])[1:-1] + ' between columns ' + str(
             #     p2[1])[1:-1] + ' and  ' + str(p4[1])[1:-1] + ' with elevation = ' + str(Elevation2[p2])[1:-1]
         else:
-            elevation_link[i] = -999
+            elevation_link.append(-999)
             # print str(int(OverlandLoc[i])) + ' is not a Shetran link number'
-        i += 1
 
     number_of_time_steps = len(h5.overland_flow_time)
 
