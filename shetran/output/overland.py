@@ -135,9 +135,6 @@ def plot_geo(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
             raise Exception('You need to specify either horizontal or vertical')
         assert points[i] != -1, 'There is no ' +str(point_locations[i][2])+' link at '+str(point_locations[i][:2])
 
-    # This is where conversion from coordinates to element numbers needs to happen
-    # Need the lower left coordinates of the grid, then get the nearest cell to the given coordinates
-
     number_of_points = len(points)
 
     # find location and elevation of each channel link
