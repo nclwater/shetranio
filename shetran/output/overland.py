@@ -153,7 +153,7 @@ def plot_geo(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
 
     Elevation1, Elevation2 = h5.surface_elevation[:,:,5], h5.surface_elevation[:,:,6]
     elevation_links = []
-    for point in [points]:
+    for point in points:
 
         if point in north_south_element_numbers:
             north_south_element_index = np.where(north_south_element_numbers == point)
