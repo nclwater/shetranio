@@ -122,7 +122,6 @@ def plot_geo(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
                             float(point.split(',')[1]),
                             str(point.split(',')[2].strip()))
                   for point in f.readlines()[1:]]
-    print(point_locations)
 
     points = []
 
@@ -135,7 +134,6 @@ def plot_geo(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
         else:
             raise Exception('You need to specify either horizontal or vertical')
         assert points[i] != -1, 'There is no ' +str(point_locations[i][2])+' link at '+str(point_locations[i][:2])
-    print(points)
 
     # This is where conversion from coordinates to element numbers needs to happen
     # Need the lower left coordinates of the grid, then get the nearest cell to the given coordinates
