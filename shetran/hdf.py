@@ -53,6 +53,21 @@ class Hdf:
         return self.number[y_index,x_index,0]
 
 
+    def get_channel_link_number(self, dem_file, location):
+        """Returns north-south and east-west channel link numbers"""
+        d = dem.Dem(dem_file)
+
+        x_coordinates = np.array([d.x_lower_left + i * d.cell_size for i in range(d.number_of_columns)])
+        y_coordinates = np.array([d.y_lower_left + i * d.cell_size for i in range(d.number_of_rows)])
+
+        x_location = x_coordinates[np.abs(x_coordinates - location[0]) == np.min(np.abs(x_coordinates - location[0]))]
+        y_location = y_coordinates[np.abs(y_coordinates - location[1]) == np.min(np.abs(y_coordinates - location[1]))]
+
+        x_index = int(np.where(x_coordinates == x_location)[0])
+        y_index = int(np.where(y_coordinates == y_location)[0])
+        return self.number[y_index, x_index, 5], self.number[y_index, x_index, 6]
+
+
     def get_channel_link_location(self, dem_file, element_number):
         d = dem.Dem(dem_file)
 
