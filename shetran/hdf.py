@@ -1,4 +1,6 @@
 import h5py
+import dem
+import numpy as np
 class Hdf:
     def __init__(self, path):
         self.path = path
@@ -37,7 +39,16 @@ class Hdf:
         self.snow_depth_value = self.snow_depth['value']
         self.snow_depth_flow_time = self.snow_depth['time']
 
+    def get_element_number(self, dem_file, location):
+        d = dem.Dem(dem_file)
 
+        x_coordinates = np.array([d.x_lower_left+i*d.cell_size for i in range(d.number_of_columns)])
+        y_coordinates = np.array([d.y_lower_left+i*d.cell_size for i in range(d.number_of_rows)])
 
+        x_location = x_coordinates[np.abs(x_coordinates-location[0]) ==np.min(np.abs(x_coordinates-location[0]))]
+        y_location = y_coordinates[np.abs(y_coordinates-location[1]) ==np.min(np.abs(y_coordinates-location[1]))]
 
+        x_index = int(np.where(x_coordinates==x_location)[0])
+        y_index = int(np.where(y_coordinates==y_location)[0])
+        return self.number[y_index,x_index,0]
 
