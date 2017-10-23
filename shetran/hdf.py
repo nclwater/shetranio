@@ -1,6 +1,32 @@
 import h5py
 import dem
 import numpy as np
+
+class Constant:
+    def __init__(self, array):
+        self.square = array[:, :, 0]
+        self.north_bank = array[:, :, 1]
+        self.east_bank = array[:, :, 2]
+        self.south_bank = array[:, :, 3]
+        self.west_bank = array[:, :, 4]
+        self.north_link = array[:, :, 5]
+        self.east_link = array[:, :, 6]
+        self.south_link = array[:, :, 7]
+        self.west_link = array[:, :, 8]
+
+    def get_link(self,direction):
+        if direction == 'n':
+            return self.north_link
+        elif direction == 'e':
+            return self.east_link
+        elif direction == 's':
+            return self.south_link
+        elif direction == 'w':
+            return self.west_link
+        else:
+            raise Exception('Please specify a direction from [n,e,s,w]')
+
+
 class Hdf:
     def __init__(self, path):
         self.path = path
@@ -11,14 +37,14 @@ class Hdf:
         self.catchment_spreadsheets = self.file['CATCHMENT_SPREADSHEETS']
         self.sv4_numbering = self.catchment_spreadsheets['SV4_numbering']
         self.constants = self.file['CONSTANTS']
-        self.centroid = self.constants['centroid']
+        self.centroid = Constant(self.constants['centroid'])
         self.grid_dxy = self.constants['grid_dxy']
-        self.number = self.constants['number']
-        self.r_span = self.constants['r_span']
-        self.soil_type = self.constants['soil_typ']
-        self.spatial1 = self.constants['spatial1']
-        self.surface_elevation = self.constants['surf_elv']
-        self.vertical_thickness = self.constants['vert_thk']
+        self.number = Constant(self.constants['number'])
+        self.r_span = Constant(self.constants['r_span'])
+        self.soil_type = Constant(self.constants['soil_typ'])
+        self.spatial1 = Constant(self.constants['spatial1'])
+        self.surface_elevation = Constant(self.constants['surf_elv'])
+        self.vertical_thickness = Constant(self.constants['vert_thk'])
         self.variables = self.file['VARIABLES']
         self.net_rain = self.variables['  1 net_rain']
         self.net_rain_value = self.net_rain['value']
@@ -50,11 +76,12 @@ class Hdf:
 
         x_index = int(np.where(x_coordinates==x_location)[0])
         y_index = int(np.where(y_coordinates==y_location)[0])
-        return self.number[y_index,x_index,0]
+        return self.number.square[y_index,x_index]
 
 
-    def get_channel_link_number(self, dem_file, location):
+    def get_channel_link_number(self, dem_file, location, direction):
         """Returns north-south and east-west channel link numbers"""
+        assert direction in ['n', 'e', 's', 'w'], 'Please specify a direction from [n, e, s, w]'
         d = dem.Dem(dem_file)
 
         x_coordinates = np.array([d.x_lower_left + i * d.cell_size for i in range(d.number_of_columns)])
@@ -65,20 +92,31 @@ class Hdf:
 
         x_index = int(np.where(x_coordinates == x_location)[0])
         y_index = int(np.where(y_coordinates == y_location)[0])
-        return self.number[y_index, x_index, 5], self.number[y_index, x_index, 6]
+
+        if direction=='n':
+            return self.number.north_link[y_index, x_index]
+        elif direction=='e':
+            return self.number.east_link[y_index,x_index]
+        elif direction=='s':
+            return self.number.south_link[y_index,x_index]
+        elif direction=='w':
+            return self.number.west_link[y_index, x_index]
 
 
     def get_channel_link_location(self, dem_file, element_number):
         d = dem.Dem(dem_file)
 
-        index_north = np.where(self.number[:, :, 5] == element_number)
-        index_west = np.where(self.number[:, :, 6] == element_number)
-        if len(index_north[0])>0:
-            index = index_north
+        if element_number in self.number.north_link:
+            index = np.where(self.number.north_link == element_number)
+        elif element_number in self.number.east_link:
+            index = np.where(self.number.east_link == element_number)
+        elif element_number in self.number.south_link:
+            index = np.where(self.number.south_link == element_number)
+        elif element_number in self.number.west_link:
+            index = np.where(self.number.west_link == element_number)
         else:
-            index = index_west
-        print(index)
-
+            index = None
+        assert index, 'Element number is not a channel link'
 
         x_coordinates = np.array([d.x_lower_left+i*d.cell_size for i in range(d.number_of_columns)])
         y_coordinates = np.array([d.y_lower_left+i*d.cell_size for i in range(d.number_of_rows)])
@@ -91,7 +129,7 @@ class Hdf:
     def get_element_location(self, dem_file, element_number):
         d = dem.Dem(dem_file)
 
-        index = np.where(self.number[:, :, 0] == element_number)
+        index = np.where(self.number.square == element_number)
 
         x_coordinates = np.array([d.x_lower_left + i * d.cell_size for i in range(d.number_of_columns)])
         y_coordinates = np.array([d.y_lower_left + i * d.cell_size for i in range(d.number_of_rows)])
