@@ -124,24 +124,19 @@ def plot_geo(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
                   for point in f.readlines()[1:]]
 
     points = []
-    print(point_locations)
     elevations = []
 
     for i in range(len(point_locations)):
-        points.append(
-            h5.get_channel_link_number(
-                dem_file,
-                (
-                    point_locations[i][0],
-                    point_locations[i][1],
-                ),
-                point_locations[i][2]
-            )
-        )
+        x = point_locations[i][0]
+        y = point_locations[i][1]
+        direction = point_locations[i][2]
+        points.append(h5.get_channel_link_number(dem_file,(x,y),direction))
         assert points[i] != -1, 'There is no ' +str(point_locations[i][2])+' link at '+str(point_locations[i][:2])
 
     for i in range(len(points)):
-        elevations.append(h5.surface_elevation.get_link(point_locations[i][2])[np.where(h5.number.get_link(point_locations[i][2]) == points[i])])
+        direction = point_locations[i][2]
+        elevations.append(h5.surface_elevation.get_link(direction)
+                          [np.where(h5.number.get_link(direction) == points[i])])
 
     number_of_points = len(points)
 
