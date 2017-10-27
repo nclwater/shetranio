@@ -4,7 +4,7 @@ import os
 from .. import hdf
 import datetime
 
-def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
+def locations(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
     """Using HDF file, produces Time Series of discharge at specified Shetran channel numbers
 
         Args:
@@ -99,7 +99,7 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
         plt.savefig(os.path.join(out_dir, 'Discharge-timeseries.png'))
     plt.show()
 
-def plot_geo(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
+def locations_geo(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
     """Using HDF file, produces Time Series of discharge at specified Shetran channel numbers
 
         Args:

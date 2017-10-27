@@ -20,7 +20,7 @@ def _read(in_file):
     return obs, sim, days
 
 
-def plot_time_series(in_file, out_dir=None):
+def hydrograph(in_file, out_dir=None):
     """Creates a plot of observed verses simulated discharge
 
     Args:
@@ -78,7 +78,7 @@ def get_nse(in_file):
     return 1 - (sum(diffList) / sum(obsDiffList))
 
 
-def get_percentiles(in_file, out_dir=None):
+def percentiles(in_file, out_dir=None):
     """Calculates percentiles of observed vs simulated discharge at 0, 1, 5-100 in steps of 5 and 99.
 
             Args:
@@ -111,7 +111,7 @@ def get_percentiles(in_file, out_dir=None):
     return percentiles_list, obs_percentiles, sim_percentiles
 
 
-def plot_exceedance(in_file, out_dir=None):
+def exceedance(in_file, out_dir=None):
     """Saves an exceedance curve plot to a PNG file
 
         Args:
@@ -147,7 +147,7 @@ def plot_exceedance(in_file, out_dir=None):
     plt.show()
 
 
-def plot_water_balance(in_file, out_dir=None):
+def water_balance(in_file, out_dir=None):
     """Saves a water balance plot to a PNG file
 
         Args:

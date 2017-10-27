@@ -5,7 +5,7 @@ import os
 from ipywidgets import interact, IntSlider, Layout
 
 
-def plot_points(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None, interactive=True, timestep=0):
+def points(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None, interactive=True, timestep=0):
     """Using HDF file produces soil moisture profile plots of particular points.
             Each figure shows all the points at a particular time.
             There is a separate figure for each time.
@@ -260,7 +260,7 @@ def plot_points(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None
     timeseriesplot(moisturetimes, depth, data, ntimes, Npoints, row, col, elevation, minth, maxth, n_layers)
 
 
-def plot_times(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None, interactive=True, point=0):
+def times(h5_file, hdf_group, timeseries_locations, n_layers, out_dir=None, interactive=True, point=0):
     """Using HDF file produces soil moisture profile plots of particular points.
                 Each figure shows a single points with all times.
                 There is a separate figure for each point.
