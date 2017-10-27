@@ -8,8 +8,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from ipywidgets import interact, IntSlider, Layout
 
 
-def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
-    """Using HDF file, produces Time Series of phreatic surface depth at timeseriesLocations
+def locations(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
+    """Using HDF file, produces Time Series of phreatic surface depth at timeseries locations
 
             Args:
                 h5_file (str): Path to the input HDF5 file.
@@ -176,7 +176,7 @@ def plot(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
     # print 'time series plot'
     timeseriesplot(datetimes, data, Npoints, row, col, elevation)
 
-def plot2d(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, timestep=0, time_interval=1):
+def area(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, timestep=0, time_interval=1):
     """Using HDF file, produces 2d plots of phreatic surface depth at regular timesteps
 
         Args:
@@ -369,7 +369,7 @@ def plot2d(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, timest
     # print '2d plot'
     return TwoDPlot(ntimes, nrows, ncols, minpsl, maxpsl, GridSize, hdf_group)
 
-def plot3d(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, azi=0):
+def area3d(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, azi=0):
     """Using HDF file, produces 3d plots of water table or phreatic surface depth.
         The face colour corresponds to the phreatic depth.
         By default it is produced at the final timestep (ntimes) with views every 10 degrees.
