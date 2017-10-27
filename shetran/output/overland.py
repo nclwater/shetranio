@@ -157,7 +157,7 @@ def plot_geo(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
         discharge_at_all_faces[i, :, :] = h5.overland_flow_value[points[i] - 1, :, :]
         i += 1
     for i in range(number_of_points):
-        for j in range(0, number_of_time_steps):
+        for j in range(number_of_time_steps):
             maximum_absolute_discharge[i, j] = np.amax(abs(discharge_at_all_faces[i, :, j]))
 
     plt.figure(figsize=[12.0, 5.0],
