@@ -122,7 +122,7 @@ def exceedance(in_file, out_dir=None):
             None
 
         """
-    percentiles_list, obs_percentiles, sim_percentiles = get_percentiles(in_file)
+    percentiles_list, obs_percentiles, sim_percentiles = percentiles(in_file)
 
     percentiles_list.reverse()
 
