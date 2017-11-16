@@ -1,5 +1,5 @@
 import h5py
-import dem
+from .dem import Dem
 import numpy as np
 
 class Constant:
@@ -66,7 +66,7 @@ class Hdf:
         self.snow_depth_flow_time = self.snow_depth['time']
 
     def get_element_number(self, dem_file, location):
-        d = dem.Dem(dem_file)
+        d = Dem(dem_file)
 
         x_coordinates = np.array([d.x_lower_left+i*d.cell_size for i in range(d.number_of_columns)])
         y_coordinates = np.array([d.y_lower_left+i*d.cell_size for i in range(d.number_of_rows)])
@@ -82,7 +82,7 @@ class Hdf:
     def get_channel_link_number(self, dem_file, location, direction):
         """Returns north-south and east-west channel link numbers"""
         assert direction in ['n', 'e', 's', 'w'], 'Please specify a direction from [n, e, s, w]'
-        d = dem.Dem(dem_file)
+        d = Dem(dem_file)
 
         x_coordinates = np.array([d.x_lower_left + i * d.cell_size for i in range(d.number_of_columns)])
         y_coordinates = np.array([d.y_lower_left + i * d.cell_size for i in range(d.number_of_rows)])
@@ -104,7 +104,7 @@ class Hdf:
 
 
     def get_channel_link_location(self, dem_file, element_number):
-        d = dem.Dem(dem_file)
+        d = Dem(dem_file)
 
         if element_number in self.number.north_link:
             index = np.where(self.number.north_link == element_number)
@@ -127,7 +127,7 @@ class Hdf:
         return x_location,y_location
 
     def get_element_location(self, dem_file, element_number):
-        d = dem.Dem(dem_file)
+        d = Dem(dem_file)
 
         index = np.where(self.number.square == element_number)
 
