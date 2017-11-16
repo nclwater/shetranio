@@ -4,7 +4,7 @@ import os
 from ..hdf import Hdf
 import datetime
 
-def numbers(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
+def numbers(h5_file, timeseries_locations, start_date, out_dir=None):
     """Using HDF file, produces Time Series of discharge at specified Shetran channel numbers
 
         Args:
@@ -107,6 +107,7 @@ def xy(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
             hdf_group (str): Name of HDF file output group.
             timeseries_locations (str): Path to locations text file.
             start_date (datetime.datetime): Datetime object set to start of simulation period.
+            dem_file (str): Path to an ASCII text file of the input DEM.
             out_dir (str, optional): Folder to save an output PNG into. Defaults to None.
 
         Returns:
