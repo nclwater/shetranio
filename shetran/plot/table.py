@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import h5py
+from ..hdf import Hdf
 import os
 import datetime
 from matplotlib import cm
@@ -8,7 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from ipywidgets import interact, IntSlider, Layout
 
 
-def locations(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
+def numbers(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
     """Using HDF file, produces Time Series of phreatic surface depth at timeseries locations
 
             Args:
@@ -175,6 +176,118 @@ def locations(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None
     # time series plots.
     # print 'time series plot'
     timeseriesplot(datetimes, data, Npoints, row, col, elevation)
+
+
+def xy(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
+    """Using HDF file, produces Time Series of phreatic surface depth at timeseries locations
+
+            Args:
+                h5_file (str): Path to the input HDF5 file.
+                hdf_group (str): Name of HDF file output group.
+                timeseries_locations (str): Path to locations text file.
+                start_date (datetime.datetime): Datetime object set to start of simulation period.
+                out_dir (str, optional): Folder to save an output PNG into. Defaults to None.
+
+            Returns:
+                None
+
+    """
+
+    def timeseriesplot(psltimes, data, Npoints, row, col, elevation):
+        plotlabel = np.empty(Npoints, dtype=object)
+        fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
+        plt.subplots_adjust(bottom=0.2, right=0.75)
+        ax = plt.subplot(1, 1, 1)
+        i = 0
+        while i < Npoints:
+            if elevation[i] != -1:
+                plotlabel[i] = 'Col=' + str(int(col[i])) + ' Row=' + str(int(row[i])) + ' Elev= %7.2f m' % elevation[i]
+                # plot m below ground
+                ax.plot(psltimes, data[i, :], label=plotlabel[i])
+                # plot absolute elevation
+                # ax.plot(psltimes,elevation[i]-inputs[i,:],label=plotlabel[i])
+            i += 1
+        # plot m below ground
+        ax.set_ylabel('Water Table Depth (m below ground)')
+        # plot absolute elevation
+        # ax.set_ylabel('Phreatic Surface Level (m ASl)')
+        plt.xticks(rotation=70)
+        plt.gca().invert_yaxis()
+        ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
+        if out_dir:
+            if not os.path.exists(out_dir):
+                os.mkdir(out_dir)
+            plt.savefig(os.path.join(out_dir,'watertable-timeseries.png'))
+
+        plt.show()
+
+
+
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    # number of points (Npoints) in tuime series file
+
+
+    locations = open(timeseries_locations, "r")
+
+    # go back to start of file and get locations
+    locations.seek(0)
+    with open(timeseries_locations) as f:
+        # skip over the headers
+        f.readline()
+        col = []
+        row = []
+        for line in f:
+            x_val, y_val = line.rstrip().split(",")
+            col.append(int(x_val))
+            row.append(int(y_val))
+
+    number_of_points = len(col)
+
+    fh5 = h5py.File(h5_file, 'r')
+
+    h5 = Hdf(h5_file)
+    # dem is row number(from top), column number
+
+    nrows, ncols = h5.surface_elevation.square.shape
+
+    dem = h5.surface_elevation.square[0:nrows - 1, 0:ncols - 1]
+
+
+    # elevations correspond to the row number and column number in hdf file
+    elevation = np.zeros(shape=(number_of_points))
+    i = 0
+    while i < number_of_points:
+
+        elevation[i] = dem[int(row[i]), int(col[i])]
+        # if elevation[i] == -1:
+        #     print 'column ', int(col[i]), ' row ', int(row[i]), ' outside of catchment'
+
+        i += 1
+
+    # get times of output. ntimes is the final time
+
+
+    times = h5.ph_depth_time[:]
+
+    time_dimensions = times.shape
+
+    # setup a datetime array. there must be a better way than this
+    datetimes = np.array([start_date + datetime.timedelta(hours=int(i)) for i in times])
+
+    # get the time series inputs
+    data = np.zeros(shape=(number_of_points, times.shape[0]))
+
+    for i in range(number_of_points):
+
+        point_data = h5.ph_depth_value[row[i], col[i], :]
+
+        point_data = [round(m, 2) for m in point_data]
+
+        data[i, :] = point_data
+
+    timeseriesplot(datetimes, data, number_of_points, row, col, elevation)
 
 def area(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, timestep=0, time_interval=1):
     """Using HDF file, produces 2d plots of phreatic surface depth at regular timesteps
