@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from .. import hdf
+from ..hdf import Hdf
 import datetime
 
 def locations(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
@@ -18,7 +18,7 @@ def locations(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None
             None
 
     """
-    h5 = hdf.Hdf(h5_file)
+    h5 = Hdf(h5_file)
 
     # ovr_flow reference is [channel number:face:time]
 
@@ -113,9 +113,8 @@ def locations_geo(h5_file, timeseries_locations, start_date, dem_file, out_dir=N
             None
 
     """
-    h5 = hdf.Hdf(h5_file)
-
-    # ovr_flow reference is [channel number:face:time]
+    # Read in the h5 file to an Hdf object
+    h5 = Hdf(h5_file)
 
     with open(timeseries_locations, 'r') as f:
         point_locations = [(float(point.split(',')[0]),
