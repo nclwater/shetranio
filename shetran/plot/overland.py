@@ -4,7 +4,7 @@ import os
 from ..hdf import Hdf
 import datetime
 
-def locations(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
+def numbers(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None):
     """Using HDF file, produces Time Series of discharge at specified Shetran channel numbers
 
         Args:
@@ -99,8 +99,8 @@ def locations(h5_file, hdf_group, timeseries_locations, start_date, out_dir=None
         plt.savefig(os.path.join(out_dir, 'Discharge-timeseries.png'))
     plt.show()
 
-def locations_geo(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
-    """Using HDF file, produces Time Series of discharge at specified Shetran channel numbers
+def xy(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
+    """Using HDF file, produces Time Series of discharge at specified locations
 
         Args:
             h5_file (str): Path to the input HDF5 file.
@@ -116,66 +116,71 @@ def locations_geo(h5_file, timeseries_locations, start_date, dem_file, out_dir=N
     # Read in the h5 file to an Hdf object
     h5 = Hdf(h5_file)
 
+    # Read in the file with locations and directions
+    # point_locations is a list of tuples as (x coordinate, y coordinate, direction)
     with open(timeseries_locations, 'r') as f:
         point_locations = [(float(point.split(',')[0]),
                             float(point.split(',')[1]),
                             str(point.split(',')[2].strip()))
                   for point in f.readlines()[1:]]
 
-    points = []
-    elevations = []
+    # Setup variables to hold the SHETRAN element numbers of the points and their elevations
+    point_element_numbers = []
+    point_elevations = []
 
-    for i in range(len(point_locations)):
-        x = point_locations[i][0]
-        y = point_locations[i][1]
-        direction = point_locations[i][2]
-        points.append(h5.get_channel_link_number(dem_file,(x,y),direction))
-        assert points[i] != -1, 'There is no ' +str(point_locations[i][2])+' link at '+str(point_locations[i][:2])
+    # Get the element numbers of each point and check that they aren't -1
+    for point_location in point_locations:
+        x = point_location[0]
+        y = point_location[1]
+        direction = point_location[2]
+        point_element_numbers.append(h5.get_channel_link_number(dem_file,(x,y),direction))
+        assert point_element_numbers[-1] != -1, 'There is no ' +str(point_location[2])+' link at '+str(point_location[:2])
 
-    for i in range(len(points)):
-        direction = point_locations[i][2]
-        elevations.append(h5.surface_elevation.get_link(direction)
-                          [np.where(h5.number.get_link(direction) == points[i])])
+    # Get the elevations for the channel links
+    directions = [i[2] for i in point_locations]
+    for point_element_number, direction in zip(point_element_numbers, directions):
+        point_elevations.append(h5.surface_elevation.get_link(direction)
+                                [np.where(h5.number.get_link(direction) == point_element_number)])
 
-    number_of_points = len(points)
+    number_of_points = len(point_element_numbers)
 
     number_of_time_steps = len(h5.overland_flow_time)
 
-    # setup a datetime array. there must be a better way than this
+    # Create an array of dates from the start date based on hours in the HDF file
     times = np.array([start_date + datetime.timedelta(hours=int(h5.overland_flow_time[:][i]))
                       for i in range(number_of_time_steps)])
 
-    # get the time series inputs
-    # discharge is specifed at 4 faces. We want the maximum absolute discharge
+    # Create arrays to hold the discharge at all faces and the maximum absolute discharge
     discharge_at_all_faces = np.zeros(shape=(number_of_points, 4, number_of_time_steps))
     maximum_absolute_discharge = np.zeros(shape=(number_of_points, number_of_time_steps))
 
+    # Get the discharges from the HDF file
     for i in range(number_of_points):
-        # if elevation_links[i] != -999:
-            # Subtract one from the element number to convert to index
-        discharge_at_all_faces[i, :, :] = h5.overland_flow_value[points[i] - 1, :, :]
-        i += 1
+        # Subtract one from the element number to convert to index?
+        discharge_at_all_faces[i, :, :] = h5.overland_flow_value[point_element_numbers[i] - 1, :, :]
+
+    # Calculate the maximum
     for i in range(number_of_points):
         for j in range(number_of_time_steps):
             maximum_absolute_discharge[i, j] = np.amax(abs(discharge_at_all_faces[i, :, j]))
 
-    plt.figure(figsize=[12.0, 5.0],
-               dpi=300)
+    # Create the figure
+    plt.figure(figsize=[12.0, 5.0], dpi=300)
     plt.subplots_adjust(bottom=0.2, right=0.75)
     ax = plt.subplot(1, 1, 1)
 
+    # Plot a line for each point
     for idx in range(number_of_points):
-        # if elevation_links[idx] != -999:
-            # plot m below ground
         ax.plot(times, maximum_absolute_discharge[idx, :],
-                label='River Link= %4s' % str(int(points[idx])) + ' Elev= %7.2f m' % elevations[idx]
+                label='River Link= %s Elev= %.2fm' % (str(int(point_element_numbers[idx])), point_elevations[idx])
                 )
-            # plot absolute elevation
-            # ax.plot(psltimes,elevation[i]-inputs[i,:],label=plotlabel[i])
-    # plot m below ground
+
+    # Adjust figure
     ax.set_ylabel('Discharge (m$^3$/s)')
     plt.xticks(rotation=70)
-    ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
+    ax.legend( )
+
+    # Save if out_dir is specified
     if out_dir:
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
