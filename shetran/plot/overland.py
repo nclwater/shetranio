@@ -179,7 +179,11 @@ def xy(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
     # Adjust figure
     ax.set_ylabel('Discharge (m$^3$/s)')
     plt.xticks(rotation=70)
-    ax.legend( )
+    ax.legend(
+        bbox_to_anchor=(0.5, -0.2),
+        loc=9,
+        ncol=2
+    )
 
     # Save if out_dir is specified
     if out_dir:
