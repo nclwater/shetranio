@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import h5py
 from ..hdf import Hdf
+from..dem import Dem
 import os
 import datetime
 from matplotlib import cm
@@ -9,7 +10,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from ipywidgets import interact, IntSlider, Layout
 
 
-def points(h5_file, timeseries_locations, start_date, out_dir=None):
+def points(h5_file, timeseries_locations, start_date, out_dir=None, dem=None):
     """Using HDF file, produces Time Series of phreatic surface depth at timeseries locations
 
             Args:
@@ -37,11 +38,16 @@ def points(h5_file, timeseries_locations, start_date, out_dir=None):
 
     number_of_points = len(col)
 
+    if dem is not None:
+        dem = Dem(dem)
+        for i, (x, y)  in enumerate(zip(col, row)):
+            col[i], row[i] = dem.get_index(x, y)
+
     # Open the HDF
     h5 = Hdf(h5_file)
 
     # Get the DEM from the HDF and take 1 off each end
-    dem = h5.surface_elevation.square[1:-1, 1:-1]
+    elevations = h5.surface_elevation.square[1:-1, 1:-1]
 
     # Get the times in hours from the HDF
     times = h5.ph_depth_time[:]
@@ -63,11 +69,12 @@ def points(h5_file, timeseries_locations, start_date, out_dir=None):
 
     # Check if each elevation is inside the DEM and if so add to plot
     for i in range(number_of_points):
-        elevation = dem[int(row[i]), int(col[i])]
+        elevation = elevations[int(row[i]), int(col[i])]
         if elevation == -1:
             print 'column', int(col[i]), 'row', int(row[i]), 'is outside of catchment'
         else:
-            label = 'Col:' + str(int(col[i])) + ' Row:' + str(int(row[i])) + ' Elev:%.2f m' % elevation
+            label = str(int(dem.x_coordinates[int(col[i])])) + ',' + str(int(dem.y_coordinates[int(row[i])])) +\
+                    ' Elev:%.2f m' % elevation
             ax.plot(times, data[i, :], label=label)
 
     ax.set_ylabel('Water Table Depth (m below ground)')
