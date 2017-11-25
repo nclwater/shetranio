@@ -68,14 +68,19 @@ class Hdf:
     def get_element_number(self, dem_file, location):
         d = Dem(dem_file)
 
-        x_coordinates = np.array([d.x_lower_left+i*d.cell_size for i in range(d.number_of_columns)])
-        y_coordinates = np.array([d.y_lower_left+i*d.cell_size for i in range(d.number_of_rows)])
+        # x_coordinates = np.array([d.x_lower_left+i*d.cell_size for i in range(d.number_of_columns)])
+        # y_coordinates = np.array([d.y_lower_left+i*d.cell_size for i in range(d.number_of_rows)])
+        #
+        # x_location = x_coordinates[np.abs(x_coordinates-location[0]) ==np.min(np.abs(x_coordinates-location[0]))]
+        # y_location = y_coordinates[np.abs(y_coordinates-location[1]) ==np.min(np.abs(y_coordinates-location[1]))]
+        #
+        # x_index = int(np.where(x_coordinates==x_location)[0])
+        # y_index = int(np.where(y_coordinates==y_location)[0])
 
-        x_location = x_coordinates[np.abs(x_coordinates-location[0]) ==np.min(np.abs(x_coordinates-location[0]))]
-        y_location = y_coordinates[np.abs(y_coordinates-location[1]) ==np.min(np.abs(y_coordinates-location[1]))]
+        x_index, y_index = d.get_index(location[0], location[1])
 
-        x_index = int(np.where(x_coordinates==x_location)[0])
-        y_index = int(np.where(y_coordinates==y_location)[0])
+
+
         return self.number.square[y_index,x_index]
 
 
@@ -84,14 +89,16 @@ class Hdf:
         assert direction in ['n', 'e', 's', 'w'], 'Please specify a direction from [n, e, s, w]'
         d = Dem(dem_file)
 
-        x_coordinates = np.array([d.x_lower_left + i * d.cell_size for i in range(d.number_of_columns)])
-        y_coordinates = np.array([d.y_lower_left + i * d.cell_size for i in range(d.number_of_rows)])
+        # x_coordinates = np.array([d.x_lower_left + i * d.cell_size for i in range(d.number_of_columns)])
+        # y_coordinates = np.array([d.y_lower_left + i * d.cell_size for i in range(d.number_of_rows)])
+        #
+        # x_location = x_coordinates[np.abs(x_coordinates - location[0]) == np.min(np.abs(x_coordinates - location[0]))]
+        # y_location = y_coordinates[np.abs(y_coordinates - location[1]) == np.min(np.abs(y_coordinates - location[1]))]
+        #
+        # x_index = int(np.where(x_coordinates == x_location)[0])
+        # y_index = int(np.where(y_coordinates == y_location)[0])
 
-        x_location = x_coordinates[np.abs(x_coordinates - location[0]) == np.min(np.abs(x_coordinates - location[0]))]
-        y_location = y_coordinates[np.abs(y_coordinates - location[1]) == np.min(np.abs(y_coordinates - location[1]))]
-
-        x_index = int(np.where(x_coordinates == x_location)[0])
-        y_index = int(np.where(y_coordinates == y_location)[0])
+        x_index, y_index = d.get_index(location[0], location[1])
 
         if direction=='n':
             return self.number.north_link[y_index, x_index]
@@ -118,11 +125,11 @@ class Hdf:
             index = None
         assert index, 'Element number is not a channel link'
 
-        x_coordinates = np.array([d.x_lower_left+i*d.cell_size for i in range(d.number_of_columns)])
-        y_coordinates = np.array([d.y_lower_left+i*d.cell_size for i in range(d.number_of_rows)])
+        # x_coordinates = np.array([d.x_lower_left+i*d.cell_size for i in range(d.number_of_columns)])
+        # y_coordinates = np.array([d.y_lower_left+i*d.cell_size for i in range(d.number_of_rows)])
 
-        x_location = x_coordinates[int(index[1])]
-        y_location = y_coordinates[int(index[0])]
+        x_location = d.x_coordinates[int(index[1])]
+        y_location = d.y_coordinates[int(index[0])]
 
         return x_location,y_location
 
@@ -131,11 +138,8 @@ class Hdf:
 
         index = np.where(self.number.square == element_number)
 
-        x_coordinates = np.array([d.x_lower_left + i * d.cell_size for i in range(d.number_of_columns)])
-        y_coordinates = np.array([d.y_lower_left + i * d.cell_size for i in range(d.number_of_rows)])
-
-        x_location = x_coordinates[int(index[1])]
-        y_location = y_coordinates[int(index[0])]
+        x_location = d.x_coordinates[int(index[1])]
+        y_location = d.y_coordinates[int(index[0])]
 
         return x_location, y_location
 
