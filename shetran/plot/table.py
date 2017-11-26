@@ -73,8 +73,11 @@ def points(h5_file, timeseries_locations, start_date, out_dir=None, dem=None):
         if elevation == -1:
             print 'column', int(col[i]), 'row', int(row[i]), 'is outside of catchment'
         else:
-            label = str(int(dem.x_coordinates[int(col[i])])) + ',' + str(int(dem.y_coordinates[int(row[i])])) +\
+            if dem is not None:
+                label = str(int(dem.x_coordinates[int(col[i])])) + ',' + str(int(dem.y_coordinates[int(row[i])])) +\
                     ' Elev:%.2f m' % elevation
+            else:
+                label = 'Col=' + str(int(col[i])) + ' Row=' + str(int(row[i])) + ' Elev= %7.2f m' % elevation[i]
             ax.plot(times, data[i, :], label=label)
 
     ax.set_ylabel('Water Table Depth (m below ground)')
