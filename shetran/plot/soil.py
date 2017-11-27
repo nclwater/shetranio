@@ -1,19 +1,22 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from ..hdf import Hdf
+from ..dem import Dem
 import os
-from ipywidgets import interact, IntSlider, Layout
+from ipywidgets import interact, IntSlider, Layout, ToggleButtons
 
 
-def points(h5_file, timeseries_locations, selected_layers, out_dir=None, interactive=True, timestep=0):
+def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None, interactive=True, timestep=0):
     """Using HDF file produces soil moisture profile plots of particular points.
             Each figure shows all the points at a particular time.
             There is a separate figure for each time.
+            If a DEM is specified, points are read as geo-referenced coordinates
 
                 Args:
                     h5_file (str): Path to the input HDF5 file.
                     timeseries_locations (str): Points that you want time series inputs for.
                     selected_layers (int): Number of soil layers needing output for. Starting from the top.
+                    dem (str): Path to an ASCII text file of the input DEM.
                     out_dir (str, optional): Folder to save an output PNG into. Defaults to None.
                     interactive (bool, optional): Whether to return an ipython slider with the plot. Defaults to True.
                     timestep (int, optional): The index of the timestep to create the plot at. Defaults to 0.
@@ -39,13 +42,17 @@ def points(h5_file, timeseries_locations, selected_layers, out_dir=None, interac
 
     number_of_points = len(col)
 
+    if dem is not None:
+        dem = Dem(dem)
+        for i, (x, y)  in enumerate(zip(col, row)):
+            col[i], row[i] = dem.get_index(x, y)
 
-    dem = h5.surface_elevation.square[1:- 1, 1:- 1]
+    elevations = h5.surface_elevation.square[1:- 1, 1:- 1]
 
     elevation = np.zeros(shape=(number_of_points))
     for i in range(number_of_points):
 
-        elevation[i] = dem[int(row[i]), int(col[i])]
+        elevation[i] = elevations[int(row[i]), int(col[i])]
 
     moisture_times = h5.theta_time
     number_of_time_steps = h5.theta_time.shape[0]
@@ -97,8 +104,12 @@ def points(h5_file, timeseries_locations, selected_layers, out_dir=None, interac
 
         for i in range(number_of_points):
             if elevation[i] != -1:
-                label[i] = 'Col=' + str(int(col[i])) + ' Row=' + str(
-                    int(row[i])) + ' Elev= %7.2f m' % elevation[i]
+                if dem is not None:
+                    label[i] = str(int(dem.x_coordinates[int(col[i])])) + ',' + str(int(dem.y_coordinates[int(row[i])])) + \
+                            ' Elev:%.2f m' % elevation[i]
+                else:
+                    label[i] = 'Col=' + str(int(col[i])) + ' Row=' + str(
+                        int(row[i])) + ' Elev= %7.2f m' % elevation[i]
                 ax.plot(data[0:selected_layers - 1, time, i], depth[0:selected_layers - 1],
                         label=label[i])
 
@@ -126,7 +137,7 @@ def points(h5_file, timeseries_locations, selected_layers, out_dir=None, interac
         plot(timestep)
 
 
-def times(h5_file, timeseries_locations, selected_layers, out_dir=None, interactive=True, point=0):
+def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None, interactive=True, point=0):
     """Using HDF file produces soil moisture profile plots of particular points.
                 Each figure shows a single points with all times.
                 There is a separate figure for each point.
@@ -159,18 +170,23 @@ def times(h5_file, timeseries_locations, selected_layers, out_dir=None, interact
     col = np.array(x)
     row = np.array(y)
 
-    number_of_points = len(x)
+    if dem is not None:
+        dem = Dem(dem)
+        for i, (x, y)  in enumerate(zip(col, row)):
+            col[i], row[i] = dem.get_index(x, y)
+
+    number_of_points = len(col)
 
     # dem is row number(from top), column number
 
     # Shetran adds extra column and row around grid. Only need dem in normal grid
-    dem = h5.surface_elevation.square[1:-1, 1:-1]
+    elevations = h5.surface_elevation.square[1:-1, 1:-1]
 
     # elevations correspond to the row number and column number in hdf file
     elevation = np.zeros(shape=(number_of_points))
     for i in range(number_of_points):
 
-        elevation[i] = dem[int(row[i]), int(col[i])]
+        elevation[i] = elevations[int(row[i]), int(col[i])]
 
 
     # get times of output. ntimes is the final time
@@ -212,7 +228,6 @@ def times(h5_file, timeseries_locations, selected_layers, out_dir=None, interact
 
     def plot(point):
         if elevation[point] != -1:
-            label = np.empty(number_of_time_steps, dtype=object)
             plt.figure(figsize=[12.0, 5.0], dpi=300)
             plt.subplots_adjust(bottom=0.1, right=0.75)
             ax = plt.subplot(1, 1, 1)
@@ -220,17 +235,22 @@ def times(h5_file, timeseries_locations, selected_layers, out_dir=None, interact
             ax.set_xlabel('Soil moisture content')
 
             for time_step in range(1, number_of_time_steps):
-                label[time_step] = 'Time=' + str(int(moisture_times[time_step])) + ' hours'
+                label = 'Time=' + str(int(moisture_times[time_step])) + ' hours'
                 ax.plot(data[0:selected_layers - 1, time_step, point], depth[0:selected_layers - 1],
-                        label=label[time_step])
+                        label=label)
 
             axes = plt.gca()
             axes.set_xlim([min_theta, max_theta])
             plt.gca().invert_yaxis()
             ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
-            plt.title(
-                "Profile. " + 'Col=' + str(int(col[point])) + ' Row=' + str(int(row[point])) + ' Elev= %7.2f m' %
-                elevation[point])
+            if dem is not None:
+                plt.title(
+                    "Profile. " + str(dem.x_coordinates[col[point]]) + ',' + str(dem.y_coordinates[row[point]]) + ' Elev= %7.2f m' %
+                    elevation[point])
+            else:
+                plt.title(
+                    "Profile. " + 'Col=' + str(int(col[point])) + ' Row=' + str(int(row[point])) + ' Elev= %7.2f m' %
+                    elevation[point])
 
             if out_dir:
                 if not os.path.exists(out_dir):
@@ -239,12 +259,9 @@ def times(h5_file, timeseries_locations, selected_layers, out_dir=None, interact
             plt.show()
 
     if interactive:
-        interact(plot, point=IntSlider(value=point,
-                                     min=0,
-                                     max=number_of_points-1,
-                                     step=1,
-                                     continuous_update=False,
-                                     description=' ',
+        interact(plot, point=ToggleButtons(options=range(number_of_points),
+                                     # continuous_update=False,
+                                     description='Point:',
                                      readout_format='',
                                      layout=Layout(width='100%')))
     else:
