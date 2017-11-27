@@ -3,7 +3,7 @@ import numpy as np
 from ..hdf import Hdf
 from ..dem import Dem
 import os
-from ipywidgets import interact, IntSlider, Layout, ToggleButtons
+from ipywidgets import interact, IntSlider, Layout, Dropdown, SelectionSlider
 
 
 def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None, interactive=True, timestep=0):
@@ -125,14 +125,16 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
         plt.show()
 
     if interactive:
-        interact(plot, time=IntSlider(value=timestep,
-                                     min=0,
-                                     max=number_of_time_steps-1,
-                                     step=1,
-                                     continuous_update=False,
-                                     description=' ',
-                                     readout_format='',
-                                     layout=Layout(width='100%')))
+        interact(plot, time=SelectionSlider(
+            options = [("%7.0f hours" % moisture_times[i],i) for i in range(number_of_time_steps)],
+            # value=timestep,
+            #  min=0,
+            #  max=number_of_time_steps-1,
+            #  step=1,
+             continuous_update=False,
+             description=' ',
+             readout_format='',
+             layout=Layout(width='100%')))
     else:
         plot(timestep)
 
@@ -227,6 +229,7 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
     max_theta = max(max_theta, np.nanmax(data[:, 1:number_of_time_steps, :]))
 
     def plot(point):
+
         if elevation[point] != -1:
             plt.figure(figsize=[12.0, 5.0], dpi=300)
             plt.subplots_adjust(bottom=0.1, right=0.75)
@@ -245,7 +248,7 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
             ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
             if dem is not None:
                 plt.title(
-                    "Profile. " + str(dem.x_coordinates[col[point]]) + ',' + str(dem.y_coordinates[row[point]]) + ' Elev= %7.2f m' %
+                    "Profile. " + str(int(dem.x_coordinates[col[point]])) + ',' + str(int(dem.y_coordinates[row[point]])) + ' Elev= %7.2f m' %
                     elevation[point])
             else:
                 plt.title(
@@ -257,13 +260,18 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
                     os.mkdir(out_dir)
                 plt.savefig(out_dir + '/' + 'profile' + str(point) + '.png')
             plt.show()
+        else:
+            print("Point. " + str(int(dem.x_coordinates[col[point]])) + ',' + str(dem.y_coordinates[row[point]])
+                  +' is not in the DEM')
 
     if interactive:
-        interact(plot, point=ToggleButtons(options=range(number_of_points),
-                                     # continuous_update=False,
-                                     description='Point:',
-                                     readout_format='',
-                                     layout=Layout(width='100%')))
+        interact(plot,point=Dropdown(
+            options = dict([(str(int(dem.x_coordinates[col[i]])) +',' + str(int(dem.y_coordinates[row[i]])), i)
+                            for i in range(number_of_points)]),
+            description='location:',
+            continuous_update=False,
+            readout_format='',
+        ))
     else:
         plot(point)
 
