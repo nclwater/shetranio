@@ -116,7 +116,11 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
         axes = plt.gca()
         axes.set_xlim([min_theta, max_theta])
         plt.gca().invert_yaxis()
-        ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
+        ax.legend(
+            bbox_to_anchor=(0.5, -0.2),
+            loc=9,
+            ncol=2,
+        )
         plt.title("Profile. Time = %7.0f hours" % moisture_times[time])
         if out_dir:
             if not os.path.exists(out_dir):
@@ -245,7 +249,11 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
             axes = plt.gca()
             axes.set_xlim([min_theta, max_theta])
             plt.gca().invert_yaxis()
-            ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., prop={'size': 8})
+            ax.legend(
+                bbox_to_anchor=(0.5, -0.2),
+                loc=9,
+                ncol=3,
+            )
             if dem is not None:
                 plt.title(
                     "Profile. " + str(int(dem.x_coordinates[col[point]])) + ',' + str(int(dem.y_coordinates[row[point]])) + ' Elev= %7.2f m' %
@@ -261,7 +269,7 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
                 plt.savefig(out_dir + '/' + 'profile' + str(point) + '.png')
             plt.show()
         else:
-            print("Point. " + str(int(dem.x_coordinates[col[point]])) + ',' + str(dem.y_coordinates[row[point]])
+            print("Point. " + str(int(dem.x_coordinates[col[point]])) + ',' + str(int(dem.y_coordinates[row[point]]))
                   +' is not in the DEM')
 
     if interactive:
