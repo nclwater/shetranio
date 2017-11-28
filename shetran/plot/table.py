@@ -7,7 +7,7 @@ import os
 import datetime
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
-from ipywidgets import interact, IntSlider, Layout
+from ipywidgets import interact, IntSlider, Layout, SelectionSlider
 
 
 def points(h5_file, timeseries_locations, start_date, out_dir=None, dem=None):
@@ -245,15 +245,13 @@ def area(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, timestep
 
             # time += timeinterval
         if interactive:
-            interact(plot, current_time=IntSlider(value=timestep,
-                                                         min=0,
-                                                         max=ntimes-1,
-                                                         step=time_interval,
-                                                         continuous_update=False,
-                                                         description=' ',
-                                                         readout_format='',
-                                                         layout=Layout(width='100%')),
-                            )
+            interact(plot, current_time=SelectionSlider(
+            options = [("%7.0f hours" % psltimes[i],i) for i in range(ntimes)],
+             continuous_update=False,
+             description=' ',
+             readout_format='',
+             layout=Layout(width='100%')))
+
         else:
             plot(timestep)
 
