@@ -99,7 +99,7 @@ def points(h5_file, timeseries_locations, start_date, out_dir=None, dem=None):
 
     plt.show()
 
-def area(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, timestep=0, time_interval=1):
+def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_interval=1):
     """Using HDF file, produces 2d plots of phreatic surface depth at regular timesteps
 
         Args:
@@ -114,181 +114,84 @@ def area(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, timestep
             None
 
     """
-
-    def get_grid():
-        with open(grid) as f:
-            lines = [f.readline() for _ in range(4)]
-
-        geo = {'ncols':lines[0].split()[1],
-               'nrows':lines[1].split()[1],
-               'xll':lines[2].split()[1],
-               'yll':lines[3].split()[1]}
-
-        return geo
     # assume grid size is the same everywhere (this is not necessarily true but is usual)
-    def getGridSize():
 
-        tgroup = '/CONSTANTS'
-        tsubgroup = 'grid_dxy'
+    h5 = Hdf(h5_file)
 
-        group = fh5[tgroup]
-        # print group
+    elevations = h5.surface_elevation.square[1:-1, 1:-1]
+    nrows, ncols = elevations.shape
 
-        for subgroup in group:  # iterate over subgroups
-            # print subgroup
-            if tsubgroup in subgroup:
-                # print 'found required subgroup: ' , subgroup
+    grid_size = np.nanmax(h5.grid_dxy)
 
-                val = group[subgroup]
-                Gridsize = np.nanmax(val)
-                # print Gridsize
-
-        return Gridsize
-
-    def getElevations():
-
-        tgroup = '/CONSTANTS'
-        tsubgroup = 'surf_elv'
-
-        group = fh5[tgroup]
-        # print group
-
-        for subgroup in group:  # iterate over subgroups
-            # print subgroup
-            if tsubgroup in subgroup:
-                # print 'found required subgroup: ' , subgroup
-
-                val = group[subgroup]
-                dims = val.shape
-                # Shetran adds extra column and row around grid. Only need dem in normal grid
-                nrows = dims[0] - 1
-                ncols = dims[1] - 1
-                dem = val[1:nrows, 1:ncols, 0]
-
-        return np.array(dem), nrows, ncols
-
-    def getpsl(t, nrows, ncols, HDFgroup):
-
-        tgroup = '/VARIABLES'
-        tsubgroup = HDFgroup
-
-        group = fh5[tgroup]
-
-        for subgroup in group:  # iterate over subgroups
-            if tsubgroup in subgroup:
-                # print 'found required subgroup: ' , subgroup
-                val = group[subgroup + '/' + 'value']
-
-                # inputs[nrows:ncols:time] ie [j,i,:]
-                data = val[1:nrows, 1:ncols, t]
-        return data
-
-    def getpsltimes(HDFgroup):
-
-        tgroup = '/VARIABLES'
-        tsubgroup = HDFgroup
-
-        group = fh5[tgroup]
-
-        for subgroup in group:  # iterate over subgroups
-            if tsubgroup in subgroup:
-                # print 'found required subgroup: ' , subgroup
-                times = group[subgroup + '/' + 'time']
-                psltimes = times[:]
-
-        return psltimes
-
-    def TwoDPlot(ntimes, nrows, ncols, minpsl, maxpsl, GridSize, HDFgroup):
-        # while time < ntimes:
-
-        def plot(current_time):
-            fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
-            h5datapsl2d = getpsl(current_time, nrows, ncols, HDFgroup)
-            h5datapsl2d[h5datapsl2d == -1.0] = np.nan
-
-            ax = plt.subplot(1, 1, 1)
-            ax.axis([0, GridSize * ncols, 0, GridSize * nrows])
-            ax.set_xlabel('Distance(m)')
-            ax.set_ylabel('Distance(m)')
-            ax = plt.subplot(1, 1, 1)
-            xmin = 0
-            xmax = GridSize * ncols
-            ymin = 0
-            ymax = GridSize * nrows
-            if grid is not None:
-                g = get_grid()
-                xmin = int(g['xll'])-GridSize
-                xmax += xmin+GridSize
-                ymin = int(g['yll'])-GridSize
-                ymax += ymin+GridSize
-                ax.set_xlim(xmin, xmax)
-                ax.set_ylim(ymin, ymax)
-                ax.set_xlabel('OSGB X Coordinate (m)')
-                ax.set_ylabel('OSGB Y Coordinate (m)')
-            cax = ax.imshow(h5datapsl2d,
-                            extent=[xmin, xmax, ymin, ymax],
-                            interpolation='none',
-                            vmin=minpsl, vmax=maxpsl, cmap='Blues_r')
-            # cbar = fig.colorbar(cax,ticks=[-1,0,1,2],fraction=0.04, pad=0.10)
-            fig.colorbar(cax, fraction=0.04, pad=0.10)
-            # plt.subplots_adjust(wspace=0.4)
-
-            plt.title("Water Table depth - meters below ground. Time = %7.0f hours" % psltimes[current_time],
-                         # fontsize=14,
-                         # fontweight='bold'
-                         )
-            if out_dir:
-                if not os.path.exists(out_dir):
-                    os.mkdir(out_dir)
-                plt.savefig(out_dir + '/' + 'WaterTable-2d-time' + str(current_time) + '.png')
-            plt.show()
-
-            # time += timeinterval
-        if interactive:
-            interact(plot, current_time=SelectionSlider(
-            options = [("%7.0f hours" % psltimes[i],i) for i in range(ntimes)],
-             continuous_update=False,
-             description=' ',
-             readout_format='',
-             layout=Layout(width='100%')))
-
-        else:
-            plot(timestep)
-
-    def maxminpsl(nrows, ncols, ntimes, timeinterval):
-        minpsl = 99999.0
-        maxpsl = -99999.0
-        time = 0
-        while time < ntimes:
-            h5datapsl2d = getpsl(time, nrows, ncols, hdf_group)
-            h5datapsl2d[h5datapsl2d == -1.0] = np.nan
-            minpsl = min(minpsl, np.nanmin(h5datapsl2d))
-            maxpsl = max(maxpsl, np.nanmax(h5datapsl2d))
-            # print minpsl,maxpsl
-
-            time += timeinterval
-        return minpsl, maxpsl
-
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-    fh5 = h5py.File(h5_file, 'r')
-    dem, nrows, ncols = getElevations()
-
-    GridSize = getGridSize()
-
-    # get times of output. ntimes is the final time
-    psltimes = getpsltimes(hdf_group)
+    psltimes = h5.ph_depth_time
     dimstime = psltimes.shape
     ntimes = dimstime[0]
     assert 0 <= timestep < ntimes, 'Timestep must be between 0 and %s' % (int(ntimes)-1)
 
-    # obtain max and min psl
-    minpsl, maxpsl = maxminpsl(nrows, ncols, ntimes, time_interval)
+    minpsl = 99999.0
+    maxpsl = -99999.0
+    for i in range(0, ntimes, time_interval):
 
-    # 2d plots. The numbers produced depend on the time interval
-    # print '2d plot'
-    return TwoDPlot(ntimes, nrows, ncols, minpsl, maxpsl, GridSize, hdf_group)
+        h5datapsl2d = h5.ph_depth_value[1:-1, 1:-1, i]
+        h5datapsl2d[h5datapsl2d == -1.0] = np.nan
+        minpsl = min(minpsl, np.nanmin(h5datapsl2d))
+        maxpsl = max(maxpsl, np.nanmax(h5datapsl2d))
+
+    def plot(current_time):
+        fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
+        h5datapsl2d = h5.ph_depth_value[1:-1, 1:-1, current_time]
+        h5datapsl2d[h5datapsl2d == -1.0] = np.nan
+
+        ax = plt.subplot(1, 1, 1)
+        ax.axis([0, grid_size * ncols, 0, grid_size * nrows])
+        ax.set_xlabel('Distance(m)')
+        ax.set_ylabel('Distance(m)')
+        ax = plt.subplot(1, 1, 1)
+        if dem is not None:
+            grid = Dem(dem)
+            ax.set_xlim(grid.x_coordinates.min(), grid.x_coordinates.max())
+            ax.set_ylim(grid.y_coordinates.min(), grid.y_coordinates.max())
+            ax.set_xlabel('OSGB X Coordinate (m)')
+            ax.set_ylabel('OSGB Y Coordinate (m)')
+            cax = ax.imshow(h5datapsl2d,
+                            extent=[grid.x_coordinates.min(),
+                                    grid.x_coordinates.max(),
+                                    grid.y_coordinates.min(),
+                                    grid.y_coordinates.max()],
+                            interpolation='none',
+                            vmin=minpsl, vmax=maxpsl, cmap='Blues_r')
+        else:
+            cax = ax.imshow(h5datapsl2d,
+                            extent=[0,
+                                    ncols*grid_size,
+                                    0,
+                                    nrows*grid_size],
+                            interpolation='none',
+                            vmin=minpsl, vmax=maxpsl, cmap='Blues_r'
+                            )
+
+        fig.colorbar(cax, fraction=0.04, pad=0.10)
+
+        plt.title("Water Table depth - meters below ground. Time = %7.0f hours" % psltimes[current_time],
+                     # fontsize=14,
+                     # fontweight='bold'
+                     )
+        if out_dir:
+            if not os.path.exists(out_dir):
+                os.mkdir(out_dir)
+            plt.savefig(out_dir + '/' + 'WaterTable-2d-time' + str(current_time) + '.png')
+        plt.show()
+
+    if interactive:
+        interact(plot, current_time=SelectionSlider(
+        options = [("%7.0f hours" % psltimes[i],i) for i in range(ntimes)],
+         continuous_update=False,
+         description=' ',
+         readout_format='',
+         layout=Layout(width='100%')))
+
+    else:
+        plot(timestep)
 
 def area3d(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, azi=0):
     """Using HDF file, produces 3d plots of water table or phreatic surface depth.
