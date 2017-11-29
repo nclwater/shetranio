@@ -99,7 +99,7 @@ def points(h5_file, timeseries_locations, start_date, out_dir=None, dem=None):
 
     plt.show()
 
-def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_interval=1):
+def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_interval=1, video=False):
     """Using HDF file, produces 2d plots of phreatic surface depth at regular timesteps
 
         Args:
@@ -115,7 +115,7 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
 
     """
     # assume grid size is the same everywhere (this is not necessarily true but is usual)
-
+    plt.clf()
     h5 = Hdf(h5_file)
 
     elevations = h5.surface_elevation.square[1:-1, 1:-1]
@@ -182,13 +182,73 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
             plt.savefig(out_dir + '/' + 'WaterTable-2d-time' + str(current_time) + '.png')
         plt.show()
 
-    if interactive:
+    if interactive and not video:
         interact(plot, current_time=SelectionSlider(
         options = [("%7.0f hours" % psltimes[i],i) for i in range(ntimes)],
          continuous_update=False,
          description=' ',
          readout_format='',
          layout=Layout(width='100%')))
+
+    elif video:
+        from matplotlib import animation, rc
+        from IPython.display import HTML
+
+        rc('animation', html='html5')
+        fig = plt.figure(figsize=[12, 5])
+
+
+        ax = plt.subplot(1, 1, 1)
+        ax.axis([0, grid_size * ncols, 0, grid_size * nrows])
+        ax.set_xlabel('Distance(m)')
+        ax.set_ylabel('Distance(m)')
+        ax = plt.subplot(1, 1, 1)
+        if dem is not None:
+            grid = Dem(dem)
+            ax.set_xlim(grid.x_coordinates.min(), grid.x_coordinates.max())
+            ax.set_ylim(grid.y_coordinates.min(), grid.y_coordinates.max())
+            ax.set_xlabel('OSGB X Coordinate (m)')
+            ax.set_ylabel('OSGB Y Coordinate (m)')
+
+            cax = ax.imshow(np.zeros((10,10)),
+                            extent=[grid.x_coordinates.min(),
+                                    grid.x_coordinates.max(),
+                                    grid.y_coordinates.min(),
+                                    grid.y_coordinates.max()],
+                            interpolation='none',
+                            vmin=minpsl, vmax=maxpsl, cmap='Blues_r')
+        else:
+            cax = ax.imshow(np.zeros([10,10]), extent=[0,
+                                        ncols * grid_size,
+                                        0,
+                                        nrows * grid_size],
+                                interpolation='none',
+                                vmin=minpsl, vmax=maxpsl, cmap='Blues_r')
+        fig.colorbar(cax, fraction=0.04, pad=0.10)
+
+        def plot(time):
+            h5datapsl2d = h5.ph_depth.values[1:-1, 1:-1, time]
+            h5datapsl2d[h5datapsl2d == -1.0] = np.nan
+            cax.set_data(h5datapsl2d)
+
+
+
+            plt.title("Water Table depth - meters below ground. Time = %7.0f hours" % psltimes[time],
+                      # fontsize=14,
+                      # fontweight='bold'
+                      )
+            return cax,
+
+        # def init():
+        #     # print(lines)
+        #     for i in range(len(lines)):
+        #         lines[i].set_data([], [])
+        #     return lines
+
+        anim = animation.FuncAnimation(fig, plot,
+                                       # init_func=init,
+                                       frames=ntimes, interval=200, blit=True)
+        return HTML(anim.to_html5_video())
 
     else:
         plot(timestep)
