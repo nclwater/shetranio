@@ -86,6 +86,8 @@ def components(h5_file, timeseries_locations, start_date, out_dir=None, dem=None
             ax2.plot(times, total_evap, label='Total Evaporation', color='black')
 
         # ax.set_ylabel('Water Table Depth (m below ground)')
+        ax1.set_ylabel('Canopy Storage (mm)')
+        ax2.set_ylabel('Evaporation / Transpiration (mm/hr)')
 
         # Adjust plot settings
         plt.xticks(rotation=70)
