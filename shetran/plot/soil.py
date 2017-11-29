@@ -54,13 +54,13 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
 
         elevation[i] = elevations[int(row[i]), int(col[i])]
 
-    moisture_times = h5.theta_time
-    number_of_time_steps = h5.theta_time.shape[0]
+    moisture_times = h5.theta.times
+    number_of_time_steps = h5.theta.times.shape[0]
     assert 0 <= timestep < number_of_time_steps, 'Timestep must be between 0 and %s' % (int(number_of_time_steps) - 1)
 
     # get the number of layers for which output is defined. This is specified in the visulisation plan file and might not be all the layers
 
-    all_layers = h5.theta_value.shape[2]
+    all_layers = h5.theta.values.shape[2]
 
     selected_layers = min(all_layers, selected_layers)
 
@@ -68,7 +68,7 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
     data = np.zeros(shape=(all_layers, number_of_time_steps, number_of_points))
 
     for i in range(number_of_points):
-        point_data = h5.theta_value[row[i], col[i], :, :]
+        point_data = h5.theta.values[row[i], col[i], :, :]
         point_data[point_data==-1] = np.nan
         data[:, :, i] = point_data
 
@@ -196,10 +196,10 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
 
 
     # get times of output. ntimes is the final time
-    moisture_times = h5.theta_time
+    moisture_times = h5.theta.times
     number_of_time_steps = moisture_times.shape[0]
 
-    all_layers = h5.theta_value.shape[2]
+    all_layers = h5.theta.values.shape[2]
 
     # get the number of layers for which output is defined. This is specified in the visulisation plan file and might not be all the layers
     selected_layers = min(all_layers, selected_layers)
@@ -208,7 +208,7 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
     data = np.zeros(shape=(all_layers, number_of_time_steps, number_of_points))
 
     for i in range(number_of_points):
-        points_data = h5.theta_value[row[i], col[i], :, :]
+        points_data = h5.theta.values[row[i], col[i], :, :]
         points_data[points_data==-1]=np.nan
         data[:, :, i] = points_data
 

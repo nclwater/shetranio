@@ -26,6 +26,10 @@ class Constant:
         else:
             raise Exception('Please specify a direction from [n,e,s,w]')
 
+class Variable:
+    def __init__(self, variable):
+        self.values = variable['value']
+        self.times = variable['time']
 
 class Hdf:
     def __init__(self, path):
@@ -45,25 +49,37 @@ class Hdf:
         self.spatial1 = Constant(self.constants['spatial1'])
         self.surface_elevation = Constant(self.constants['surf_elv'])
         self.vertical_thickness = Constant(self.constants['vert_thk'])
+
         self.variables = self.file['VARIABLES']
-        self.net_rain = self.variables['  1 net_rain']
-        self.net_rain_value = self.net_rain['value']
-        self.net_rain_time = self.net_rain['time']
-        self.ph_depth = self.variables['  2 ph_depth']
-        self.ph_depth_value = self.ph_depth['value']
-        self.ph_depth_time = self.ph_depth['time']
-        self.theta = self.variables['  3 theta']
-        self.theta_value = self.theta['value']
-        self.theta_time = self.theta['time']
-        self.overland_flow = self.variables['  4 ovr_flow']
-        self.overland_flow_value = self.overland_flow['value']
-        self.overland_flow_time = self.overland_flow['time']
-        self.surface_depth = self.variables['  5 srf_dep']
-        self.surface_depth_value = self.surface_depth['value']
-        self.surface_depth_flow_time = self.surface_depth['time']
-        self.snow_depth = self.variables['  6 snow_dep']
-        self.snow_depth_value = self.snow_depth['value']
-        self.snow_depth_flow_time = self.snow_depth['time']
+        self.net_rain = self.lookup_variable('net_rain')
+        self.potential_evapotranspiration = self.lookup_variable('pot_evap')
+        self.transpiration = self.lookup_variable('trnsp')
+        self.surface_evaporation = self.lookup_variable('srf_evap')
+        self.evaporation_from_interception = self.lookup_variable('int_evap')
+        self.drainage_from_interception = self.lookup_variable('drainage')
+        self.canopy_storage = self.lookup_variable('can_stor')
+        self.vertical_flows = self.lookup_variable('v_flow')
+        self.snow_depth = self.lookup_variable('snow_dep')
+        self.ph_depth = self.lookup_variable('ph_depth')
+        self.overland_flow = self.lookup_variable('ovr_flow')
+        self.surface_depth = self.lookup_variable('srf_dep')
+        self.surface_water_potential = self.lookup_variable('psi')
+        self.theta = self.lookup_variable('theta')
+        self.total_sediment_depth = self.lookup_variable('s_t_dp')
+        self.surface_erosion_rate = self.lookup_variable('s_v_er')
+        self.sediment_discharge_rate = self.lookup_variable('s_dis')
+        self.mass_balance_error = self.lookup_variable('bal_err')
+
+
+
+        self.snow_depth = self.lookup_variable('snow_dep')
+
+    def lookup_variable(self, var):
+        variables = dict([(k.split(' ')[-1], k) for k in self.variables.keys()])
+        if var in variables.keys():
+            return Variable(self.variables[variables[var]])
+        else:
+            return None
 
     def get_element_number(self, dem_file, location):
         d = Dem(dem_file)

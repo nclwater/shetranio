@@ -57,10 +57,10 @@ def numbers(h5_file, timeseries_locations, start_date, out_dir=None):
             elevation_links.append(-999)
             # print str(int(OverlandLoc[i])) + ' is not a Shetran link number'
 
-    number_of_time_steps = len(h5.overland_flow_time)
+    number_of_time_steps = len(h5.overland_flow.times)
 
     # setup a datetime array. there must be a better way than this
-    times = np.array([start_date + datetime.timedelta(hours=int(h5.overland_flow_time[:][i]))
+    times = np.array([start_date + datetime.timedelta(hours=int(h5.overland_flow.times[:][i]))
                       for i in range(number_of_time_steps)])
 
     # get the time series inputs
@@ -71,7 +71,7 @@ def numbers(h5_file, timeseries_locations, start_date, out_dir=None):
     for i in range(number_of_points):
         if elevation_links[i] != -999:
             # Why is 1 being subtracted from the element number?
-            discharge_at_all_faces[i, :, :] = h5.overland_flow_value[points[i] - 1, :, :]
+            discharge_at_all_faces[i, :, :] = h5.overland_flow.values[points[i] - 1, :, :]
         i += 1
     for i in range(number_of_points):
         for j in range(0, number_of_time_steps):
@@ -145,10 +145,10 @@ def xy(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
 
     number_of_points = len(point_element_numbers)
 
-    number_of_time_steps = len(h5.overland_flow_time)
+    number_of_time_steps = len(h5.overland_flow.times)
 
     # Create an array of dates from the start date based on hours in the HDF file
-    times = np.array([start_date + datetime.timedelta(hours=int(h5.overland_flow_time[:][i]))
+    times = np.array([start_date + datetime.timedelta(hours=int(h5.overland_flow.times[:][i]))
                       for i in range(number_of_time_steps)])
 
     # Create arrays to hold the discharge at all faces and the maximum absolute discharge
@@ -158,7 +158,7 @@ def xy(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
     # Get the discharges from the HDF file
     for i in range(number_of_points):
         # Subtract one from the element number to convert to index?
-        discharge_at_all_faces[i, :, :] = h5.overland_flow_value[point_element_numbers[i] - 1, :, :]
+        discharge_at_all_faces[i, :, :] = h5.overland_flow.values[point_element_numbers[i] - 1, :, :]
 
     # Calculate the maximum
     for i in range(number_of_points):

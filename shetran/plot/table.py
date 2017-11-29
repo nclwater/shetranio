@@ -50,7 +50,7 @@ def points(h5_file, timeseries_locations, start_date, out_dir=None, dem=None):
     elevations = h5.surface_elevation.square[1:-1, 1:-1]
 
     # Get the times in hours from the HDF
-    times = h5.ph_depth_time[:]
+    times = h5.ph_depth.times[:]
 
     # Convert times in hours from run start to real times
     times = np.array([start_date + datetime.timedelta(hours=int(i)) for i in times])
@@ -58,7 +58,7 @@ def points(h5_file, timeseries_locations, start_date, out_dir=None, dem=None):
     # Read in the time series from the HDF
     data = np.zeros(shape=(number_of_points, times.shape[0]))
     for i in range(number_of_points):
-        point_data = h5.ph_depth_value[row[i], col[i], :]
+        point_data = h5.ph_depth.values[row[i], col[i], :]
         point_data = [round(m, 2) for m in point_data]
         data[i, :] = point_data
 
@@ -123,7 +123,7 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
 
     grid_size = np.nanmax(h5.grid_dxy)
 
-    psltimes = h5.ph_depth_time
+    psltimes = h5.ph_depth.times
     dimstime = psltimes.shape
     ntimes = dimstime[0]
     assert 0 <= timestep < ntimes, 'Timestep must be between 0 and %s' % (int(ntimes)-1)
@@ -132,14 +132,14 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
     maxpsl = -99999.0
     for i in range(0, ntimes, time_interval):
 
-        h5datapsl2d = h5.ph_depth_value[1:-1, 1:-1, i]
+        h5datapsl2d = h5.ph_depth.values[1:-1, 1:-1, i]
         h5datapsl2d[h5datapsl2d == -1.0] = np.nan
         minpsl = min(minpsl, np.nanmin(h5datapsl2d))
         maxpsl = max(maxpsl, np.nanmax(h5datapsl2d))
 
     def plot(current_time):
         fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
-        h5datapsl2d = h5.ph_depth_value[1:-1, 1:-1, current_time]
+        h5datapsl2d = h5.ph_depth.values[1:-1, 1:-1, current_time]
         h5datapsl2d[h5datapsl2d == -1.0] = np.nan
 
         ax = plt.subplot(1, 1, 1)
