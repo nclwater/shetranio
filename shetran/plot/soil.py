@@ -6,7 +6,7 @@ import os
 from ipywidgets import interact, IntSlider, Layout, Dropdown, SelectionSlider
 
 
-def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None, interactive=True, timestep=0):
+def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None, interactive=True, timestep=0, video=False):
     """Using HDF file produces soil moisture profile plots of particular points.
             Each figure shows all the points at a particular time.
             There is a separate figure for each time.
@@ -128,19 +128,69 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
             plt.savefig(out_dir + '/' + 'profile' + str(time) + '.png')
         plt.show()
 
-    if interactive:
+    if interactive and not video:
         interact(plot, time=SelectionSlider(
             options = [("%7.0f hours" % moisture_times[i],i) for i in range(number_of_time_steps)],
-            # value=timestep,
-            #  min=0,
-            #  max=number_of_time_steps-1,
-            #  step=1,
-             continuous_update=False,
-             description=' ',
-             readout_format='',
-             layout=Layout(width='100%')))
+            continuous_update=False,
+            description=' ',
+            readout_format='',
+            layout=Layout(width='100%')))
+
+    elif video:
+        from matplotlib import animation, rc
+        from IPython.display import HTML
+
+        rc('animation', html='html5')
+        fig = plt.figure(figsize=[12.0, 5.0])
+        plt.subplots_adjust(bottom=0.1, right=0.75)
+        ax = plt.subplot(1, 1, 1)
+        ax.set_ylabel('Depth(m)')
+        ax.set_xlabel('Soil moisture content')
+        axes = plt.gca()
+        axes.set_xlim([min_theta, max_theta])
+        axes.set_ylim([min(depth), max(depth)])
+        plt.gca().invert_yaxis()
+
+        lines=  []
+        for i in range(number_of_points):
+            if dem is not None:
+                label = str(int(dem.x_coordinates[int(col[i])])) + ',' + str(
+                    int(dem.y_coordinates[int(row[i])])) + \
+                        ' Elev:%.2f m' % elevation[i]
+            else:
+                label = 'Col=' + str(int(col[i])) + ' Row=' + str(
+                    int(row[i])) + ' Elev= %7.2f m' % elevation[i]
+            lines.append(axes.plot([], [], label=label)[0])
+            plt.legend(
+            )
+        print(lines)
+
+        def plot(time):
+            plt.title("Profile. Time = %7.0f hours" % moisture_times[time])
+            
+            for i in range(number_of_points):
+                if elevation[i] != -1:
+                    lines[i].set_data(data[0:selected_layers - 1, time, i], depth[0:selected_layers - 1])
+            return lines
+
+
+        def init():
+            # print(lines)
+            for i in range(len(lines)):
+                lines[i].set_data([], [])
+            return lines
+
+
+        anim = animation.FuncAnimation(fig, plot, init_func=init,
+                                       frames=number_of_time_steps, interval=200, blit=True)
+
+        return HTML(anim.to_html5_video())
+
+
     else:
         plot(timestep)
+
+
 
 
 def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None, interactive=True, point=0):
