@@ -260,7 +260,7 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
     else:
         plot(timestep)
 
-def area3d(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, azi=0):
+def area3d(h5_file, dem=None, out_dir=None, interactive=True, azi=0):
     """Using HDF file, produces 3d plots of water table or phreatic surface depth.
         The face colour corresponds to the phreatic depth.
         By default it is produced at the final timestep (ntimes) with views every 10 degrees.
@@ -278,182 +278,96 @@ def area3d(h5_file, hdf_group, grid=None, out_dir=None, interactive=True, azi=0)
      """
     assert 0<=azi<=360, 'Azimuth must be between 0 and 360'
 
-    def get_grid():
-        with open(grid) as f:
-            lines = [f.readline() for _ in range(4)]
-
-        geo = {'ncols':lines[0].split()[1],
-               'nrows':lines[1].split()[1],
-               'xll':lines[2].split()[1],
-               'yll':lines[3].split()[1]}
-
-        return geo
-
     # assume grid size is the same everywhere (this is not necessarily true but is usual)
-    def getGridSize():
-
-        tgroup = '/CONSTANTS'
-        tsubgroup = 'grid_dxy'
-
-        group = fh5[tgroup]
-        # print group
-
-        for subgroup in group:  # iterate over subgroups
-            # print subgroup
-            if tsubgroup in subgroup:
-                # print 'found required subgroup: ' , subgroup
-
-                val = group[subgroup]
-                Gridsize = np.nanmax(val)
-                # print Gridsize
-
-        return Gridsize
-
-    def getElevations():
-
-        tgroup = '/CONSTANTS'
-        tsubgroup = 'surf_elv'
-
-        group = fh5[tgroup]
-        # print group
-
-        for subgroup in group:  # iterate over subgroups
-            # print subgroup
-            if tsubgroup in subgroup:
-                # print 'found required subgroup: ' , subgroup
-
-                val = group[subgroup]
-                dims = val.shape
-                # Shetran adds extra column and row around grid. Only need dem in normal grid
-                nrows = dims[0] - 1
-                ncols = dims[1] - 1
-                dem = val[1:nrows, 1:ncols, 0]
-
-        return np.array(dem), nrows, ncols
-
-    def getpsl(t, nrows, ncols, HDFgroup):
-
-        tgroup = '/VARIABLES'
-        tsubgroup = HDFgroup
-
-        group = fh5[tgroup]
-
-        for subgroup in group:  # iterate over subgroups
-            if tsubgroup in subgroup:
-                # print 'found required subgroup: ' , subgroup
-                val = group[subgroup + '/' + 'value']
-
-                # inputs[nrows:ncols:time] ie [j,i,:]
-                data = val[1:nrows, 1:ncols, t]
-
-        return data
-
-    def getpsltimes(HDFgroup):
-
-        tgroup = '/VARIABLES'
-        tsubgroup = HDFgroup
-
-        group = fh5[tgroup]
-
-        for subgroup in group:  # iterate over subgroups
-            if tsubgroup in subgroup:
-                # print 'found required subgroup: ' , subgroup
-                times = group[subgroup + '/' + 'time']
-                psltimes = times[:]
-
-        return psltimes
-
-    def ThreeDPlot(ntimes, nrows, ncols, GridSize, mindem, maxdem, dem, HDFgroup, outfilefolder):
 
 
+    h5 = Hdf(h5_file)
+    if dem is not None:
+        dem = Dem(dem)
 
-        # repeated to produce a plot for each direction (azi)
-        # print '3d plot'
-        # starting direction
-        # azi = 0
-        # while azi < 360:
-        def plot(azi):
-            fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
-
-
-            # ax = plt.subplot(1, 1, 1, projection='3d')
-            ax = Axes3D(fig)
-            ax.set_xlabel('Distance(m)')
-            ax.set_ylabel('Distance(m)')
-            ax.set_zlabel('Elevation(m)')
-            X = np.arange(0, (ncols - 1) * GridSize, GridSize)
-            Y = np.arange(0, (nrows - 1) * GridSize, GridSize)
-            if grid is not None:
-                g = get_grid()
-                X += int(g['xll'])
-                Y += int(g['yll'])
-                ax.set_xlabel('OSGB X Coordinate (m)')
-                ax.set_ylabel('OSGB Y Coordinate (m)')
-            X, Y = np.meshgrid(X, Y)
-            plt.title('Water Table Depth (m below ground)')
-            h5datapsl = getpsl(ntimes - 1, nrows, ncols, HDFgroup)
-            r1 = h5datapsl / h5datapsl.max()
-
-            # plot phreatic levels (m above ground)
-            # r2=dem-h5datapsl
-            # r3=r2/np.nanmax(r2)
-            # surf = ax.plot_surface(Y, X, dem, rstride=1, cstride=1, facecolors=cm.Blues_r(r3), shade=False)
-
-            surf = ax.plot_surface(Y, X, dem, rstride=1, cstride=1, facecolors=cm.Blues_r(r1), shade=False)
-            ax.view_init(elev=20., azim=azi)
-            ax.set_zlim(mindem, maxdem)
-
-
-            # ax.yaxis.set_major_locator(LinearLocator(4))
-            # ax.xaxis.set_major_locator(LinearLocator(4))
-
-            # sets the scale bar. This is a bit of a fiddle
-            h5datapsl[h5datapsl == -1.0] = np.nan
-            min3dpsl = np.nanmin(h5datapsl)
-            max3dpsl = np.nanmax(h5datapsl)
-            scale = np.zeros(shape=(nrows - 1, ncols - 1))
-            scale[scale == 0.0] = min3dpsl
-            scale[0, 0] = max3dpsl
-            # m = cm.ScalarMappable(cmap=cm.YlGnBu)
-            m = cm.ScalarMappable(cmap=cm.Blues_r)
-            m.set_array(scale)
-            plt.colorbar(m)
-            if out_dir:
-                if not os.path.exists(out_dir):
-                    os.mkdir(out_dir)
-                plt.savefig(outfilefolder + '/' + 'WaterTable-3d-view' + str(azi) + '.png')
-            plt.show()
-            # azi += 10
-            # return
-        if interactive:
-            interact(plot, azi=IntSlider(value=azi,
-                                         min=0,
-                                         max=360,
-                                         step=10,
-                                         continuous_update=False,
-                                         description=' ',
-                                         readout_format='',
-                                         layout=Layout(width='100%')))
-
-
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-    fh5 = h5py.File(h5_file, 'r')
-    dem, nrows, ncols = getElevations()
+    elevation = h5.surface_elevation.square
+    dims = elevation.shape
+    # Shetran adds extra column and row around grid. Only need dem in normal grid
+    nrows = dims[0] - 1
+    ncols = dims[1] - 1
+    elevation = elevation[1:nrows, 1:ncols]
 
     # sets values outside mask to nan
-    dem[dem == -1] = np.nan
-    mindem = np.nanmin(dem)
-    maxdem = np.nanmax(dem)
+    elevation[elevation == -1] = np.nan
+    mindem = np.nanmin(elevation)
+    maxdem = np.nanmax(elevation)
 
-    GridSize = getGridSize()
+    grid_size = np.nanmax(h5.grid_dxy)
 
     # get times of output. ntimes is the final time
-    psltimes = getpsltimes(hdf_group)
+    psltimes = h5.ph_depth.times
     dimstime = psltimes.shape
     ntimes = dimstime[0]
 
-    # 3D surface plots - by default produced at final time
-    # figures produced by default at ntimes (this can be changed)
-    return ThreeDPlot(ntimes, nrows, ncols, GridSize, mindem, maxdem, dem, hdf_group, out_dir)
+    def plot(azi):
+        fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
+
+
+        # ax = plt.subplot(1, 1, 1, projection='3d')
+        ax = Axes3D(fig)
+        ax.set_xlabel('Distance(m)')
+        ax.set_ylabel('Distance(m)')
+        ax.set_zlabel('Elevation(m)')
+        X = np.arange(0, (ncols - 1) * grid_size, grid_size)
+        Y = np.arange(0, (nrows - 1) * grid_size, grid_size)
+        if dem is not None:
+
+            X += dem.x_lower_left
+            Y += dem.y_lower_left
+            ax.set_xlabel('OSGB X Coordinate (m)')
+            ax.set_ylabel('OSGB Y Coordinate (m)')
+        X, Y = np.meshgrid(X, Y)
+        plt.title('Water Table Depth (m below ground)')
+
+        val = h5.ph_depth.values
+
+        h5datapsl = val[1:nrows, 1:ncols, ntimes-1]
+
+        r1 = h5datapsl / h5datapsl.max()
+
+        # plot phreatic levels (m above ground)
+        # r2=dem-h5datapsl
+        # r3=r2/np.nanmax(r2)
+        # surf = ax.plot_surface(Y, X, dem, rstride=1, cstride=1, facecolors=cm.Blues_r(r3), shade=False)
+
+        ax.plot_surface(Y, X, elevation, rstride=1, cstride=1, facecolors=cm.Blues_r(r1), shade=False)
+        ax.view_init(elev=20., azim=azi)
+        ax.set_zlim(mindem, maxdem)
+
+
+        # ax.yaxis.set_major_locator(LinearLocator(4))
+        # ax.xaxis.set_major_locator(LinearLocator(4))
+
+        # sets the scale bar. This is a bit of a fiddle
+        h5datapsl[h5datapsl == -1.0] = np.nan
+        min3dpsl = np.nanmin(h5datapsl)
+        max3dpsl = np.nanmax(h5datapsl)
+        scale = np.zeros(shape=(nrows - 1, ncols - 1))
+        scale[scale == 0.0] = min3dpsl
+        scale[0, 0] = max3dpsl
+        # m = cm.ScalarMappable(cmap=cm.YlGnBu)
+        m = cm.ScalarMappable(cmap=cm.Blues_r)
+        m.set_array(scale)
+        plt.colorbar(m)
+        if out_dir:
+            if not os.path.exists(out_dir):
+                os.mkdir(out_dir)
+            plt.savefig(out_dir + '/' + 'WaterTable-3d-view' + str(azi) + '.png')
+        plt.show()
+        # azi += 10
+        # return
+    if interactive:
+        interact(plot, azi=IntSlider(value=azi,
+                                     min=0,
+                                     max=360,
+                                     step=10,
+                                     continuous_update=False,
+                                     description=' ',
+                                     readout_format='',
+                                     layout=Layout(width='100%')))
+
