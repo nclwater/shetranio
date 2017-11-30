@@ -81,7 +81,7 @@ def components(h5_file, timeseries_locations, start_date, out_dir=None, dem=None
                 label = 'Col=' + str(int(col[point])) + ' Row=' + str(int(row[point])) + ' Elev= %7.2f m' % elevation[point]
             ax1.plot(times, can_stor, label='Canopy Storage', color='orange')
             ax2.plot(times, trnsp, label='Transpiration', color='green')
-            ax2.plot(times, srf_evap, label='Surface Evaporation', color='brown')
+            ax2.plot(times, srf_evap, label='Surface Evaporation', color='blue')
             ax2.plot(times, int_evap, label='Evaporation from Interception', color='red')
             ax2.plot(times, total_evap, label='Total Evaporation', color='black')
 
