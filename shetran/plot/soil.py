@@ -64,6 +64,8 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
 
     selected_layers = min(all_layers, selected_layers)
 
+    assert selected_layers > 1, 'Need more than 1 layer to plot soil moisture'
+
     # get the time series inputs
     data = np.zeros(shape=(all_layers, number_of_time_steps, number_of_points))
 
@@ -171,6 +173,7 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
             for i in range(number_of_points):
                 if elevation[i] != -1:
                     lines[i].set_data(data[0:selected_layers - 1, time, i], depth[0:selected_layers - 1])
+            plt.close()
             return lines
 
 
