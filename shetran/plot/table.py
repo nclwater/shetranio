@@ -207,6 +207,7 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
         ax.set_xlabel('Distance(m)')
         ax.set_ylabel('Distance(m)')
         ax = plt.subplot(1, 1, 1)
+        title = plt.title("Water Table depth - meters below ground. Time = 0 hours")
         if dem is not None:
             grid = Dem(dem)
             ax.set_xlim(grid.x_coordinates.min(), grid.x_coordinates.max())
@@ -237,12 +238,7 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
                 h5datapsl2d = elevations - h5datapsl2d
             cax.set_data(h5datapsl2d)
 
-
-
-            plt.title("Water Table depth - meters below ground. Time = %7.0f hours" % psltimes[time],
-                      # fontsize=14,
-                      # fontweight='bold'
-                      )
+            title.set_text("Water Table depth - meters below ground. Time = %7.0f hours" % psltimes[time])
             plt.close()
             return cax,
 

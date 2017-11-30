@@ -152,6 +152,7 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
         axes.set_xlim([min_theta, max_theta])
         axes.set_ylim([min(depth), max(depth)])
         plt.gca().invert_yaxis()
+        title = plt.title("Profile. Time = 0 hours")
 
         lines=  []
         for i in range(number_of_points):
@@ -168,7 +169,7 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
         print(lines)
 
         def plot(time):
-            plt.title("Profile. Time = %7.0f hours" % moisture_times[time])
+            title.set_text("Profile. Time = %7.0f hours" % moisture_times[time])
             
             for i in range(number_of_points):
                 if elevation[i] != -1:
