@@ -237,6 +237,7 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
                       # fontsize=14,
                       # fontweight='bold'
                       )
+            plt.close()
             return cax,
 
         # def init():
