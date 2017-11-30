@@ -74,7 +74,7 @@ def balance(h5_file, timeseries_locations, start_date, out_dir=None, dem=None, i
         # Check if each elevation is inside the DEM and if so add to plot
         elevation = elevations[int(row[point]), int(col[point])]
         if elevation == -1:
-            print 'column', int(col[point]), 'row', int(row[point]), 'is outside of catchment'
+            print('column', int(col[point]), 'row', int(row[point]), 'is outside of catchment')
         else:
             if dem is not None:
                 label = str(int(dem.x_coordinates[int(col[point])])) + ',' + str(int(dem.y_coordinates[int(row[point])])) +\

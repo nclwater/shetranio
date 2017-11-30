@@ -90,7 +90,7 @@ def percentiles(in_file, out_dir=None):
                     and third is the simulated percentiles
 
     """
-    percentiles_list = range(5, 100, 5)
+    percentiles_list = list(range(5, 100, 5))
     percentiles_list.append(99)
     percentiles_list.insert(0, 1)
 

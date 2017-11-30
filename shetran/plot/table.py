@@ -71,7 +71,7 @@ def points(h5_file, timeseries_locations, start_date, out_dir=None, dem=None):
     for i in range(number_of_points):
         elevation = elevations[int(row[i]), int(col[i])]
         if elevation == -1:
-            print 'column', int(col[i]), 'row', int(row[i]), 'is outside of catchment'
+            print('column', int(col[i]), 'row', int(row[i]), 'is outside of catchment')
         else:
             if dem is not None:
                 label = str(int(dem.x_coordinates[int(col[i])])) + ',' + str(int(dem.y_coordinates[int(row[i])])) +\
