@@ -99,7 +99,7 @@ def points(h5_file, timeseries_locations, start_date, out_dir=None, dem=None):
 
     plt.show()
 
-def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_interval=1, video=False):
+def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_interval=1, video=False, use_elevation=False):
     """Using HDF file, produces 2d plots of phreatic surface depth at regular timesteps
 
         Args:
@@ -134,6 +134,8 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
 
         h5datapsl2d = h5.ph_depth.values[1:-1, 1:-1, i]
         h5datapsl2d[h5datapsl2d == -1.0] = np.nan
+        if use_elevation:
+            h5datapsl2d = elevations - h5datapsl2d
         minpsl = min(minpsl, np.nanmin(h5datapsl2d))
         maxpsl = max(maxpsl, np.nanmax(h5datapsl2d))
 
@@ -141,6 +143,8 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
         fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
         h5datapsl2d = h5.ph_depth.values[1:-1, 1:-1, current_time]
         h5datapsl2d[h5datapsl2d == -1.0] = np.nan
+        if use_elevation:
+            h5datapsl2d = elevations - h5datapsl2d
 
         ax = plt.subplot(1, 1, 1)
         ax.axis([0, grid_size * ncols, 0, grid_size * nrows])
@@ -229,6 +233,8 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
         def plot(time):
             h5datapsl2d = h5.ph_depth.values[1:-1, 1:-1, time]
             h5datapsl2d[h5datapsl2d == -1.0] = np.nan
+            if use_elevation:
+                h5datapsl2d = elevations - h5datapsl2d
             cax.set_data(h5datapsl2d)
 
 
