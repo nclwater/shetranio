@@ -366,4 +366,6 @@ def area3d(h5_file, dem=None, out_dir=None, interactive=True, azi=0):
                                      description=' ',
                                      readout_format='',
                                      layout=Layout(width='100%')))
+    else:
+        plot(azi)
 
