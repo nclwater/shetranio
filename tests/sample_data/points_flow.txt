@@ -1,0 +1,3 @@
+Shetran channel locations
+414000.0, 591000.0, e
+404000.0, 594000.0, n
