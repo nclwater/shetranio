@@ -37,9 +37,9 @@ def numbers(h5_file, timeseries_locations, start_date, out_dir=None):
     # 5 seems to be north-south channels and 6 east west
     # The same applies to surface elevation
     # This section seems to just check if the cells are channels or not
-    north_south_element_numbers, east_west_element_numbers = h5.number[:,:,5], h5.number[:,:,6]
+    north_south_element_numbers, east_west_element_numbers = h5.number.north_link, h5.number.east_link
 
-    Elevation1, Elevation2 = h5.surface_elevation[:,:,5], h5.surface_elevation[:,:,6]
+    Elevation1, Elevation2 = h5.surface_elevation.north_link, h5.surface_elevation.east_link
     elevation_links = []
     for point in points:
 
