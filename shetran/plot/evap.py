@@ -105,7 +105,7 @@ def components(h5_file, timeseries_locations, start_date, out_dir=None, dem=None
         if out_dir:
             if not os.path.exists(out_dir):
                 os.mkdir(out_dir)
-            plt.savefig(os.path.join(out_dir,'watertable-timeseries.png'))
+            plt.savefig(os.path.join(out_dir,'watertable-timeseries-{}.png'.format(point)))
 
         plt.show()
 
@@ -117,3 +117,6 @@ def components(h5_file, timeseries_locations, start_date, out_dir=None, dem=None
             continuous_update=False,
             readout_format='',
         ))
+    else:
+        for point in range(number_of_points):
+            plot(point)
