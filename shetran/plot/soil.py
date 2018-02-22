@@ -257,6 +257,7 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
 
     # get the number of layers for which output is defined. This is specified in the visulisation plan file and might not be all the layers
     selected_layers = min(all_layers, selected_layers)
+    assert selected_layers > 1, 'Need more than 1 layer to plot soil moisture'
 
     # get the time series inputs
     data = np.zeros(shape=(all_layers, number_of_time_steps, number_of_points))
