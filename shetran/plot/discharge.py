@@ -53,6 +53,11 @@ def hydrograph(in_file, out_dir=None):
             os.mkdir(out_dir)
         plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_hydrograph.png")
 
+        with open(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_hydrograph.csv", 'w') as f:
+            f.write('date,obs,sim\n')
+            for i in range(len(days)):
+                f.write('{},{},{}\n'.format(days[i], obs[i], sim[i]))
+
     plt.show()
 
 
@@ -189,5 +194,11 @@ def water_balance(in_file, out_dir=None):
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
         plt.savefig(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_Monthly_Water_Balance.png")
+
+        with open(os.path.join(out_dir, os.path.basename(in_file)[:-4]) + "_Monthly_Water_Balance.csv", 'w') as f:
+            f.write('month,obs,sim\n')
+            for i in range(len(months)):
+                f.write('{},{},{}\n'.format(months[i], obs_months[i], sim_months[i]))
+
     plt.show()
 
