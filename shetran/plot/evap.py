@@ -65,10 +65,6 @@ def components(h5_file, timeseries_locations, start_date, out_dir=None, dem=None
         fig, ax1 = plt.subplots(figsize=(12,5))
         ax2 = ax1.twinx()
 
-
-
-
-
         # Check if each elevation is inside the DEM and if so add to plot
         elevation = elevations[int(row[point]), int(col[point])]
         if elevation == -1:
@@ -106,6 +102,22 @@ def components(h5_file, timeseries_locations, start_date, out_dir=None, dem=None
             if not os.path.exists(out_dir):
                 os.mkdir(out_dir)
             plt.savefig(os.path.join(out_dir,'watertable-timeseries-{}.png'.format(point)))
+            with open(os.path.join(out_dir,'watertable-timeseries-{}.csv'.format(point)), 'w') as f:
+                f.write('dates,'
+                        'canopy_storage,'
+                        'transpiration,'
+                        'surface_elevation,'
+                        'evaporation_from_interception,'
+                        'total_evaporation\n')
+
+                for idx in range(len(times)):
+                    f.write('{},{},{},{},{},{}\n'.format(
+                        times[idx],
+                        can_stor[idx],
+                        trnsp[idx],
+                        srf_evap[idx],
+                        int_evap[idx],
+                        total_evap[idx]))
 
         plt.show()
 
