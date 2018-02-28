@@ -77,8 +77,7 @@ def numbers(h5_file, timeseries_locations, start_date, out_dir=None):
         for j in range(0, number_of_time_steps):
             maximum_absolute_discharge[i, j] = np.amax(abs(discharge_at_all_faces[i, :, j]))
 
-    plt.figure(figsize=[12.0, 5.0],
-               dpi=300)
+    plt.figure(figsize=[12.0, 5.0])
     plt.subplots_adjust(bottom=0.2, right=0.75)
     ax = plt.subplot(1, 1, 1)
 
@@ -96,7 +95,24 @@ def numbers(h5_file, timeseries_locations, start_date, out_dir=None):
     if out_dir:
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
-        plt.savefig(os.path.join(out_dir, 'Discharge-timeseries.png'))
+        plt.savefig(os.path.join(out_dir, 'Discharge-timeseries-channel-numbers.png'))
+        with open(os.path.join(out_dir, 'Discharge-timeseries-channel-numbers.csv'), 'w') as f:
+            headers = []
+            discharge_at_points = []
+            for idx in range(number_of_points):
+                if elevation_links[idx] != -999:
+                    headers.append('link_{}_discharge'.format(int(points[idx])))
+                    discharge_at_points.append(maximum_absolute_discharge[idx, :])
+
+            f.write(','.join(['times'] + headers)+'\n')
+            for i in range(len(times)):
+                f.write(str(times[i]))
+                for point in discharge_at_points:
+                    f.write(','+str(point[i]))
+                f.write('\n')
+
+
+
     plt.show()
 
 def xy(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
@@ -166,7 +182,7 @@ def xy(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
             maximum_absolute_discharge[i, j] = np.amax(abs(discharge_at_all_faces[i, :, j]))
 
     # Create the figure
-    plt.figure(figsize=[12.0, 5.0], dpi=300)
+    plt.figure(figsize=[12.0, 5.0])
     plt.subplots_adjust(bottom=0.2, right=0.75)
     ax = plt.subplot(1, 1, 1)
 
@@ -189,5 +205,29 @@ def xy(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
     if out_dir:
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
-        plt.savefig(os.path.join(out_dir, 'Discharge-timeseries.png'))
+        plt.savefig(os.path.join(out_dir, 'Discharge-timeseries-XY.png'))
+
+        with open(os.path.join(out_dir, 'Discharge-timeseries-XY.csv'), 'w') as f:
+            headers = []
+            discharge_at_points = []
+            for idx in range(number_of_points):
+                headers.append('link_{}_discharge'.format(int(point_element_numbers[idx])))
+                discharge_at_points.append(maximum_absolute_discharge[idx, :])
+
+            f.write(','.join(['times'] + headers)+'\n')
+            for i in range(len(times)):
+                f.write(str(times[i]))
+                for point in discharge_at_points:
+                    f.write(','+str(point[i]))
+                f.write('\n')
+
+
+        for idx in range(number_of_points):
+
+
+
+            ax.plot(times, maximum_absolute_discharge[idx, :],
+                    label='River Link= %s Elev= %.2fm' % (str(int(point_element_numbers[idx])), point_elevations[idx])
+                    )
+
     plt.show()
