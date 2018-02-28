@@ -221,13 +221,4 @@ def xy(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
                     f.write(','+str(point[i]))
                 f.write('\n')
 
-
-        for idx in range(number_of_points):
-
-
-
-            ax.plot(times, maximum_absolute_discharge[idx, :],
-                    label='River Link= %s Elev= %.2fm' % (str(int(point_element_numbers[idx])), point_elevations[idx])
-                    )
-
     plt.show()
