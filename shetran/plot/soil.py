@@ -6,7 +6,7 @@ import os
 from ipywidgets import interact, IntSlider, Layout, Dropdown, SelectionSlider
 
 
-def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None, interactive=True, timestep=0, video=False):
+def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None, interactive=True, timestep=1, video=False):
     """Using HDF file produces soil moisture profile plots of particular points.
             Each figure shows all the points at a particular time.
             There is a separate figure for each time.
@@ -37,22 +37,24 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
             x_val, y_val = line.rstrip().split(",")
             x.append(int(x_val))
             y.append(int(y_val))
-        col = np.array(x)
-        row = np.array(y)
+        col = x
+        row = y
 
     number_of_points = len(col)
+    col_index = np.array(col)
+    row_index = np.array(row)
 
     if dem is not None:
         dem = Dem(dem)
-        for i, (x, y)  in enumerate(zip(col, row)):
-            col[i], row[i] = dem.get_index(x, y)
+        for i, (x, y)  in enumerate(zip(col_index, row_index)):
+            col_index[i], row_index[i] = dem.get_index(x, y)
 
     elevations = h5.surface_elevation.square[1:- 1, 1:- 1]
 
     elevation = np.zeros(shape=(number_of_points))
     for i in range(number_of_points):
 
-        elevation[i] = elevations[int(row[i]), int(col[i])]
+        elevation[i] = elevations[int(row_index[i]), int(col_index[i])]
 
     moisture_times = h5.theta.times
     number_of_time_steps = h5.theta.times.shape[0]
@@ -70,7 +72,7 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
     data = np.zeros(shape=(all_layers, number_of_time_steps, number_of_points))
 
     for i in range(number_of_points):
-        point_data = h5.theta.values[row[i], col[i], :, :]
+        point_data = h5.theta.values[row_index[i], col_index[i], :, :]
         point_data[point_data==-1] = np.nan
         data[:, :, i] = point_data
 
@@ -78,7 +80,7 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
 
     for i in range(number_of_points):
 
-        thickness = h5.vertical_thickness.square[row[i], col[i], :-1]
+        thickness = h5.vertical_thickness.square[row_index[i], col_index[i], :-1]
 
         for j in range(selected_layers):
             actual_thickness[j] = max(actual_thickness[j], thickness[j])
@@ -98,7 +100,7 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
 
     def plot(time):
         label = np.empty(number_of_points, dtype=object)
-        plt.figure(figsize=[12.0, 5.0], dpi=300)
+        plt.figure(figsize=[12.0, 5.0])
         plt.subplots_adjust(bottom=0.1, right=0.75)
         ax = plt.subplot(1, 1, 1)
         ax.set_ylabel('Depth(m)')
@@ -107,27 +109,43 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
         for i in range(number_of_points):
             if elevation[i] != -1:
                 if dem is not None:
-                    label[i] = str(int(dem.x_coordinates[int(col[i])])) + ',' + str(int(dem.y_coordinates[int(row[i])])) + \
+                    label[i] = str(int(dem.x_coordinates[int(col_index[i])])) + ',' + str(int(dem.y_coordinates[int(row_index[i])])) + \
                             ' Elev:%.2f m' % elevation[i]
                 else:
-                    label[i] = 'Col=' + str(int(col[i])) + ' Row=' + str(
-                        int(row[i])) + ' Elev= %7.2f m' % elevation[i]
+                    label[i] = 'Col=' + str(int(col_index[i])) + ' Row=' + str(
+                        int(row_index[i])) + ' Elev= %7.2f m' % elevation[i]
                 ax.plot(data[0:selected_layers - 1, time, i], depth[0:selected_layers - 1],
                         label=label[i])
+            else:
+                print('Row {} Col {} not within domain'.format(row[i], col[i]))
 
-        axes = plt.gca()
-        axes.set_xlim([min_theta, max_theta])
+        ax.set_xlim([min_theta, max_theta])
         plt.gca().invert_yaxis()
-        ax.legend(
-            bbox_to_anchor=(0.5, -0.2),
-            loc=9,
-            ncol=2,
-        )
+        ax.legend()
         plt.title("Profile. Time = %7.0f hours" % moisture_times[time])
         if out_dir:
             if not os.path.exists(out_dir):
                 os.mkdir(out_dir)
-            plt.savefig(out_dir + '/' + 'profile' + str(time) + '.png')
+            plt.savefig(os.path.join(out_dir ,'points-profile-{}.png'.format(time)))
+
+            with open(os.path.join(out_dir ,'points-profile-profile{}.csv'.format(time)), 'w') as f:
+                headers = []
+                point_moisture = []
+
+                for idx in range(number_of_points):
+                    if elevation[idx] != -1:
+                        headers.append('point_{}_moisture'.format(idx))
+                        point_moisture.append(data[0:selected_layers - 1, time, idx])
+
+                point_depths = depth[0:selected_layers - 1]
+
+                f.write(','.join(['depth'] + headers) + '\n')
+                for idx in range(len(point_depths)):
+                    f.write(str(point_depths[idx]))
+                    for point in point_moisture:
+                        f.write(',' + str(point[idx]))
+                    f.write('\n')
+
         plt.show()
 
     if interactive and not video:
@@ -157,12 +175,12 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
         lines=  []
         for i in range(number_of_points):
             if dem is not None:
-                label = str(int(dem.x_coordinates[int(col[i])])) + ',' + str(
-                    int(dem.y_coordinates[int(row[i])])) + \
+                label = str(int(dem.x_coordinates[int(col_index[i])])) + ',' + str(
+                    int(dem.y_coordinates[int(row_index[i])])) + \
                         ' Elev:%.2f m' % elevation[i]
             else:
-                label = 'Col=' + str(int(col[i])) + ' Row=' + str(
-                    int(row[i])) + ' Elev= %7.2f m' % elevation[i]
+                label = 'Col=' + str(int(col_index[i])) + ' Row=' + str(
+                    int(row_index[i])) + ' Elev= %7.2f m' % elevation[i]
             lines.append(axes.plot([], [], label=label)[0])
             plt.legend(
             )
