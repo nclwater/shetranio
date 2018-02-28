@@ -101,8 +101,8 @@ def components(h5_file, timeseries_locations, start_date, out_dir=None, dem=None
         if out_dir:
             if not os.path.exists(out_dir):
                 os.mkdir(out_dir)
-            plt.savefig(os.path.join(out_dir,'watertable-timeseries-{}.png'.format(point)))
-            with open(os.path.join(out_dir,'watertable-timeseries-{}.csv'.format(point)), 'w') as f:
+            plt.savefig(os.path.join(out_dir,'Water-ET-{}.png'.format(point)))
+            with open(os.path.join(out_dir,'Water-ET-{}.csv'.format(point)), 'w') as f:
                 f.write('dates,'
                         'canopy_storage,'
                         'transpiration,'
