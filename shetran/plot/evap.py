@@ -46,7 +46,7 @@ def components(h5_file, timeseries_locations, start_date, out_dir=None, dem=None
     elevations = h5.surface_elevation.square[1:-1, 1:-1]
 
     # Get the times in hours from the HDF
-    times = h5.ph_depth.times[:]
+    times = h5.evaporation_from_interception.times[:]
 
     # Convert times in hours from run start to real times
     times = np.array([start_date + datetime.timedelta(hours=int(i)) for i in times])
@@ -70,11 +70,14 @@ def components(h5_file, timeseries_locations, start_date, out_dir=None, dem=None
         if elevation == -1:
             print('column', int(col[point]), 'row', int(row[point]), 'is outside of catchment')
         else:
+            title = "Evaporation Components for Point {},{} at {}m"
             if dem is not None:
-                label = str(int(dem.x_coordinates[int(col[point])])) + ',' + str(int(dem.y_coordinates[int(row[point])])) +\
-                    ' Elev:%.2f m' % elevation
+
+                plt.title(title.format(int(dem.x_coordinates[int(col[point])]), int(dem.y_coordinates[int(row[point])]),
+                                       elevation))
+
             else:
-                label = 'Col=' + str(int(col[point])) + ' Row=' + str(int(row[point])) + ' Elev= %7.2f m' % elevation[point]
+                plt.title(title.format(int(col[point]), int(row[point]), elevation))
             ax1.plot(times, can_stor, label='Canopy Storage', color='orange')
             ax2.plot(times, trnsp, label='Transpiration', color='green')
             ax2.plot(times, srf_evap, label='Surface Evaporation', color='blue')
@@ -92,10 +95,11 @@ def components(h5_file, timeseries_locations, start_date, out_dir=None, dem=None
         h2, l2 = ax2.get_legend_handles_labels()
 
         ax1.legend(h1 + h2, l1 + l2,
-            bbox_to_anchor=(0.5, -0.2),
-            loc=9,
-            ncol=2,
-        )
+                   bbox_to_anchor=(0.5, -0.1),
+                   loc='center',
+                   # borderaxespad=0
+                   ncol=5,
+                   )
 
         # Save plot if out_dir set
         if out_dir:
