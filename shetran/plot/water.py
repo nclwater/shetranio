@@ -46,7 +46,7 @@ def balance(h5_file, timeseries_locations, start_date, out_dir=None, dem=None, i
     elevations = h5.surface_elevation.square[1:-1, 1:-1]
 
     # Get the times in hours from the HDF
-    times = h5.ph_depth.times[:]
+    times = h5.theta.times[:]
 
     # Convert times in hours from run start to real times
     times = np.array([start_date + datetime.timedelta(hours=int(i)) for i in times])
@@ -76,17 +76,20 @@ def balance(h5_file, timeseries_locations, start_date, out_dir=None, dem=None, i
         if elevation == -1:
             print('column', int(col[point]), 'row', int(row[point]), 'is outside of catchment')
         else:
+            title = "Water Balance for Point {},{} at {}m"
             if dem is not None:
-                label = str(int(dem.x_coordinates[int(col[point])])) + ',' + str(int(dem.y_coordinates[int(row[point])])) +\
-                    ' Elev:%.2f m' % elevation
+
+                plt.title(title.format(int(dem.x_coordinates[int(col[point])]), int(dem.y_coordinates[int(row[point])]), elevation))
+
             else:
-                label = 'Col=' + str(int(col[point])) + ' Row=' + str(int(row[point])) + ' Elev= %7.2f m' % elevation[point]
+                plt.title(title.format(int(col[point]), int(row[point]), elevation))
             ax1.bar(rain_times, net_rain, label='Rainfall', color='blue')
             ax2.plot(times, total_evap, label='Total Evaporation', color='green')
-            ax2.plot(times, theta, label='Surface Soil Moisture', color='orange')
+            # First value of soil moisture is replaced by NaN for plotting
+            ax2.plot(times, np.append(np.array([np.nan]),theta[1:]), label='Surface Soil Moisture', color='orange')
 
         # ax.set_ylabel('Water Table Depth (m below ground)')
-        ax1.set_ylabel('Rainfall (mm)')
+        ax1.set_ylabel('Net Rainfall (mm/hr)')
         ax2.set_ylabel('Soil Moisture (%)\nEvapotranspiration (mm/hour)')
 
         ax1.invert_yaxis()
@@ -98,9 +101,10 @@ def balance(h5_file, timeseries_locations, start_date, out_dir=None, dem=None, i
         h2, l2 = ax2.get_legend_handles_labels()
 
         ax1.legend(h1 + h2, l1 + l2,
-            bbox_to_anchor=(0.5, -0.2),
-            loc=9,
-            ncol=2,
+            bbox_to_anchor=(0.5, -0.1),
+            loc='center',
+            # borderaxespad=0
+            ncol=3,
         )
 
         # Save plot if out_dir set
@@ -108,6 +112,15 @@ def balance(h5_file, timeseries_locations, start_date, out_dir=None, dem=None, i
             if not os.path.exists(out_dir):
                 os.mkdir(out_dir)
             plt.savefig(os.path.join(out_dir,'waterbalance-timeseries-{}.png'.format(point)))
+
+            with open(os.path.join(out_dir,'waterbalance-timeseries-{}.csv'.format(point)), 'w') as f:
+                f.write('date,total_evaporation,soil_moisture\n')
+                for i in range(len(times)):
+                    f.write('{},{:.2f},{:.2f}\n'.format(times[i], total_evap[i], theta[i]))
+            with open(os.path.join(out_dir,'waterbalance-timeseries-rainfall-{}.csv'.format(point)), 'w') as f:
+                f.write('date,rainfall\n')
+                for i in range(len(rain_times)):
+                    f.write('{},{:.2f}\n'.format(rain_times[i], net_rain[i]))
 
         plt.show()
 
