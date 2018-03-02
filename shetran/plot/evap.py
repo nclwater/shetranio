@@ -111,7 +111,7 @@ def components(h5_file, timeseries_locations, start_date, out_dir=None, dem=None
                         'total_evaporation\n')
 
                 for idx in range(len(times)):
-                    f.write('{},{},{},{},{},{}\n'.format(
+                    f.write('{},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f}\n'.format(
                         times[idx],
                         can_stor[idx],
                         trnsp[idx],

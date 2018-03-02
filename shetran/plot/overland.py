@@ -108,7 +108,7 @@ def numbers(h5_file, timeseries_locations, start_date, out_dir=None):
             for i in range(len(times)):
                 f.write(str(times[i]))
                 for point in discharge_at_points:
-                    f.write(','+str(point[i]))
+                    f.write(',{:.2f}'.format(point[i]))
                 f.write('\n')
 
 
@@ -218,7 +218,7 @@ def xy(h5_file, timeseries_locations, start_date, dem_file, out_dir=None):
             for i in range(len(times)):
                 f.write(str(times[i]))
                 for point in discharge_at_points:
-                    f.write(','+str(point[i]))
+                    f.write(',{:.2f}'.format(point[i]))
                 f.write('\n')
 
     plt.show()
