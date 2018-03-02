@@ -126,9 +126,9 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
         if out_dir:
             if not os.path.exists(out_dir):
                 os.mkdir(out_dir)
-            plt.savefig(os.path.join(out_dir ,'points-profile-{}.png'.format(time)))
+            plt.savefig(os.path.join(out_dir ,'points-profile-time-{}.png'.format(time)))
 
-            with open(os.path.join(out_dir ,'points-profile-profile{}.csv'.format(time)), 'w') as f:
+            with open(os.path.join(out_dir ,'points-profile-time-{}.csv'.format(time)), 'w') as f:
                 headers = []
                 point_moisture = []
 
@@ -215,7 +215,7 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
 
 
 
-def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None, interactive=True, point=0):
+def times(h5_file, timeseries_locations, selected_number_of_layers, dem=None, out_dir=None, interactive=True, point=0):
     """Using HDF file produces soil moisture profile plots of particular points.
                 Each figure shows a single points with all times.
                 There is a separate figure for each point.
@@ -224,7 +224,7 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
                         h5_file (str): Path to the input HDF5 file.
                         hdf_group (str): Name of HDF file output group.
                         timeseries_locations (str): Points that you want time series inputs for.
-                        selected_layers (int): Number of soil layers needing output for. Starting from the top.
+                        selected_number_of_layers (int): Number of soil layers needing output for. Starting from the top.
                         out_dir (str, optional): Folder to save an output PNG into. Defaults to None.
                         interactive (bool, optional): Whether to return an ipython slider with the plot. Defaults to True.
                         point (int, optional): The index of the point to create the plot at. Defaults to 0.
@@ -250,8 +250,8 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
 
     if dem is not None:
         dem = Dem(dem)
-        for i, (x, y)  in enumerate(zip(col, row)):
-            col[i], row[i] = dem.get_index(x, y)
+        for point_index, (x, y)  in enumerate(zip(col, row)):
+            col[point_index], row[point_index] = dem.get_index(x, y)
 
     number_of_points = len(col)
 
@@ -261,54 +261,53 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
     elevations = h5.surface_elevation.square[1:-1, 1:-1]
 
     # elevations correspond to the row number and column number in hdf file
-    elevation = np.zeros(shape=(number_of_points))
-    for i in range(number_of_points):
+    elevation = np.zeros(shape=number_of_points)
+    for point_index in range(number_of_points):
 
-        elevation[i] = elevations[int(row[i]), int(col[i])]
+        elevation[point_index] = elevations[int(row[point_index]), int(col[point_index])]
 
 
-    # get times of output. ntimes is the final time
+    # get times of output
     moisture_times = h5.theta.times
     number_of_time_steps = moisture_times.shape[0]
 
-    all_layers = h5.theta.values.shape[2]
+    number_of_hdf_layers = h5.theta.values.shape[2]
 
     # get the number of layers for which output is defined. This is specified in the visulisation plan file and might not be all the layers
-    selected_layers = min(all_layers, selected_layers)
-    assert selected_layers > 1, 'Need more than 1 layer to plot soil moisture'
+    selected_number_of_layers = min(number_of_hdf_layers, selected_number_of_layers)
+    assert selected_number_of_layers > 1, 'Need more than 1 layer to plot soil moisture'
 
     # get the time series inputs
-    data = np.zeros(shape=(all_layers, number_of_time_steps, number_of_points))
+    soil_moisture = np.zeros(shape=(number_of_hdf_layers, number_of_time_steps, number_of_points))
 
-    for i in range(number_of_points):
-        points_data = h5.theta.values[row[i], col[i], :, :]
+    for point_index in range(number_of_points):
+        points_data = h5.theta.values[row[point_index], col[point_index], :, :]
         points_data[points_data==-1]=np.nan
-        data[:, :, i] = points_data
+        soil_moisture[:, :, point_index] = points_data
 
     # get the cell sizes of the layers. consider all the cells so that one is within the catchment
+    layer_thicknesses = np.zeros(shape=number_of_hdf_layers)
 
-    actThickness = np.zeros(shape=(all_layers))
-
-    for i in range(number_of_points):
-        thickness = h5.vertical_thickness.square[row[i], col[i], :-1]
-        for j in range(all_layers):
-            actThickness[j] = max(actThickness[j], thickness[j])
+    for point_index in range(number_of_points):
+        thickness = h5.vertical_thickness.square[row[point_index], col[point_index], :]
+        for j in range(number_of_hdf_layers):
+            layer_thicknesses[j] = max(layer_thicknesses[j], thickness[j])
 
     # calculate depths from thicknesses
-    depth = np.zeros(all_layers)
-    depth[0] = actThickness[0] / 2.0
-    for i in range(all_layers):
-        depth[i] = depth[i - 1] + actThickness[i] / 2.0 + actThickness[i - 1] / 2.0
+    depth = np.zeros(number_of_hdf_layers)
+    depth[0] = layer_thicknesses[0] / 2.0
+    for layer_index in range(1, number_of_hdf_layers):
+        depth[layer_index] = depth[layer_index - 1] + layer_thicknesses[layer_index] / 2.0 + layer_thicknesses[layer_index - 1] / 2.0
 
     min_theta = 99999.0
     max_theta = -99999.0
-    min_theta = min(min_theta, np.nanmin(data[:, 1:number_of_time_steps, :]))
-    max_theta = max(max_theta, np.nanmax(data[:, 1:number_of_time_steps, :]))
+    min_theta = min(min_theta, np.nanmin(soil_moisture[:, 1:number_of_time_steps, :]))
+    max_theta = max(max_theta, np.nanmax(soil_moisture[:, 1:number_of_time_steps, :]))
 
     def plot(point):
 
         if elevation[point] != -1:
-            plt.figure(figsize=[12.0, 5.0], dpi=300)
+            plt.figure(figsize=[12.0, 5.0])
             plt.subplots_adjust(bottom=0.1, right=0.75)
             ax = plt.subplot(1, 1, 1)
             ax.set_ylabel('Depth(m)')
@@ -316,17 +315,13 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
 
             for time_step in range(1, number_of_time_steps):
                 label = 'Time=' + str(int(moisture_times[time_step])) + ' hours'
-                ax.plot(data[0:selected_layers - 1, time_step, point], depth[0:selected_layers - 1],
+                ax.plot(soil_moisture[0:selected_number_of_layers - 1, time_step, point], depth[0:selected_number_of_layers - 1],
                         label=label)
 
             axes = plt.gca()
             axes.set_xlim([min_theta, max_theta])
             plt.gca().invert_yaxis()
-            ax.legend(
-                bbox_to_anchor=(0.5, -0.2),
-                loc=9,
-                ncol=3,
-            )
+            ax.legend()
             if dem is not None:
                 plt.title(
                     "Profile. " + str(int(dem.x_coordinates[col[point]])) + ',' + str(int(dem.y_coordinates[row[point]])) + ' Elev= %7.2f m' %
@@ -339,7 +334,27 @@ def times(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=None
             if out_dir:
                 if not os.path.exists(out_dir):
                     os.mkdir(out_dir)
-                plt.savefig(out_dir + '/' + 'profile' + str(point) + '.png')
+                plt.savefig(os.path.join(out_dir, 'times-profile-point-{}.png'.format(point)))
+
+
+                with open(os.path.join(out_dir, 'times-profile-point-{}.csv'.format(point)), 'w') as f:
+                    headers = []
+                    time_moisture = []
+
+
+                    for time_step in range(1, number_of_time_steps):
+                        headers.append(str(int(moisture_times[time_step])) + '_hours')
+                        time_moisture.append(soil_moisture[0:selected_number_of_layers - 1, time_step, point])
+
+                    point_depths = depth[0:selected_number_of_layers - 1]
+
+                    f.write(','.join(['depth'] + headers) + '\n')
+                    for idx in range(len(point_depths)):
+                        f.write(str(point_depths[idx]))
+                        for time in time_moisture:
+                            f.write(',' + str(time[idx]))
+                        f.write('\n')
+
             plt.show()
         else:
             print("Point. " + str(int(dem.x_coordinates[col[point]])) + ',' + str(int(dem.y_coordinates[row[point]]))
