@@ -1,4 +1,4 @@
-from shetran.plot import discharge, evap, overland, soil, table, water
+from shetran.plot import discharge, evap, overland, soil, WaterTable, water
 from datetime import datetime as dt
 import os
 
@@ -37,7 +37,7 @@ overland.xy(h5_file,
 
 soil.times(os.path.join(data_path, '76008.h5'),
            timeseries_locations=points_file,
-           selected_layers=3,
+           selected_number_of_layers=3,
            dem=dem_file,
            out_dir=output_path,
            interactive=False,
@@ -53,13 +53,13 @@ soil.points(os.path.join(data_path, '76008.h5'),
             video=False
             )
 
-table.points(h5_file,
+WaterTable.points(h5_file,
              timeseries_locations=points_file,
              start_date=start_date,
              out_dir=output_path,
              dem=dem_file)
 
-table.area(h5_file,
+WaterTable.area(h5_file,
            dem=dem_file,
            out_dir=output_path,
            interactive=False,
@@ -68,7 +68,7 @@ table.area(h5_file,
            video=False,
            use_elevation=False)
 
-table.area3d(h5_file,
+WaterTable.area3d(h5_file,
              dem=dem_file,
              out_dir=output_path,
              interactive=False,

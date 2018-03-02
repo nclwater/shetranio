@@ -58,12 +58,10 @@ def points(h5_file, timeseries_locations, start_date, out_dir=None, dem=None):
     # Read in the time series from the HDF
     data = np.zeros(shape=(number_of_points, times.shape[0]))
     for i in range(number_of_points):
-        point_data = h5.ph_depth.values[row[i], col[i], :]
-        point_data = [round(m, 2) for m in point_data]
-        data[i, :] = point_data
+        data[i, :] = h5.ph_depth.values[row[i], col[i], :]
 
     # Create the plot
-    plt.figure(figsize=[12.0, 5.0], dpi=300)
+    plt.figure(figsize=[12.0, 5.0])
     plt.subplots_adjust(bottom=0.2, right=0.75)
     ax = plt.subplot(1, 1, 1)
 
@@ -97,6 +95,25 @@ def points(h5_file, timeseries_locations, start_date, out_dir=None, dem=None):
             os.mkdir(out_dir)
         plt.savefig(os.path.join(out_dir,'watertable-timeseries.png'))
 
+        with open(os.path.join(out_dir, 'watertable-timeseries.csv'), 'w') as f:
+            headers = []
+            point_depths = []
+
+            for i in range(number_of_points):
+                elevation = elevations[int(row[i]), int(col[i])]
+                if elevation == -1:
+                    print('column', int(col[i]), 'row', int(row[i]), 'is outside of catchment')
+                else:
+                    headers.append('point_{}'.format(i))
+                    point_depths.append(data[i, :])
+
+            f.write(','.join(['time'] + headers) + '\n')
+            for idx in range(len(times)):
+                f.write(str(times[idx]))
+                for point in point_depths:
+                    f.write(',{:.2f}'.format(point[idx]))
+                f.write('\n')
+
     plt.show()
 
 def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_interval=1, video=False, use_elevation=False):
@@ -115,7 +132,6 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
 
     """
     # assume grid size is the same everywhere (this is not necessarily true but is usual)
-    plt.clf()
     h5 = Hdf(h5_file)
 
     elevations = h5.surface_elevation.square[1:-1, 1:-1]
@@ -140,24 +156,23 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
         maxpsl = max(maxpsl, np.nanmax(h5datapsl2d))
 
     def plot(current_time):
-        fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
-        h5datapsl2d = h5.ph_depth.values[1:-1, 1:-1, current_time]
-        h5datapsl2d[h5datapsl2d == -1.0] = np.nan
+        fig = plt.figure(figsize=[12.0, 5.0])
+        depth_array = h5.ph_depth.values[1:-1, 1:-1, current_time]
+        depth_array[depth_array == -1.0] = np.nan
         if use_elevation:
-            h5datapsl2d = elevations - h5datapsl2d
+            depth_array = elevations - depth_array
 
-        ax = plt.subplot(1, 1, 1)
+        ax = fig.gca()
         ax.axis([0, grid_size * ncols, 0, grid_size * nrows])
         ax.set_xlabel('Distance(m)')
         ax.set_ylabel('Distance(m)')
-        ax = plt.subplot(1, 1, 1)
         if dem is not None:
             grid = Dem(dem)
             ax.set_xlim(grid.x_coordinates.min(), grid.x_coordinates.max())
             ax.set_ylim(grid.y_coordinates.min(), grid.y_coordinates.max())
             ax.set_xlabel('OSGB X Coordinate (m)')
             ax.set_ylabel('OSGB Y Coordinate (m)')
-            cax = ax.imshow(h5datapsl2d,
+            cax = ax.imshow(depth_array,
                             extent=[grid.x_coordinates.min(),
                                     grid.x_coordinates.max(),
                                     grid.y_coordinates.min(),
@@ -165,7 +180,7 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
                             interpolation='none',
                             vmin=minpsl, vmax=maxpsl, cmap='Blues_r')
         else:
-            cax = ax.imshow(h5datapsl2d,
+            cax = ax.imshow(depth_array,
                             extent=[0,
                                     ncols*grid_size,
                                     0,
@@ -176,14 +191,42 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
 
         fig.colorbar(cax, fraction=0.04, pad=0.10)
 
-        plt.title("Water Table depth - meters below ground. Time = %7.0f hours" % psltimes[current_time],
-                     # fontsize=14,
-                     # fontweight='bold'
-                     )
+        if use_elevation:
+            plt.title("Water Table depth - meters. Time = %7.0f hours" % psltimes[current_time])
+        else:
+            plt.title("Water Table depth - meters below ground. Time = %7.0f hours" % psltimes[current_time])
+
         if out_dir:
             if not os.path.exists(out_dir):
                 os.mkdir(out_dir)
-            plt.savefig(out_dir + '/' + 'WaterTable-2d-time' + str(current_time) + '.png')
+            fig.savefig(out_dir + '/' + 'WaterTable-2d-time-' + str(current_time) + '.png')
+            try:
+                import gdal, osr
+                driver = gdal.GetDriverByName('GTiff')
+                ds = driver.Create(os.path.join(out_dir ,'WaterTable-2d-time-{}.tif'.format(current_time)),
+                                          depth_array.shape[1], depth_array.shape[0], 1, gdal.GDT_Float32)
+
+
+                if dem is not None:
+                    ds.SetGeoTransform((grid.x_coordinates.min(), grid_size, 0, grid.y_coordinates.max(), 0, -1*grid_size))
+                else:
+                    print('No DEM supplied for geo-referencing')
+                    ds.SetGeoTransform((0, grid_size, 0, 0, 0, grid_size))
+
+                band = ds.GetRasterBand(1)
+                band.WriteArray(depth_array)
+                srs = osr.SpatialReference()
+                srs.ImportFromEPSG(27700)
+                ds.SetProjection(srs.ExportToWkt())
+                band.FlushCache()
+                asc_driver = gdal.GetDriverByName('AAIGrid')
+                asc = asc_driver.CreateCopy(os.path.join(out_dir ,'WaterTable-2d-time-{}.asc'.format(current_time)),
+                                            ds, 0)
+                asc.SetProjection(srs.ExportToWkt())
+                asc.FlushCache()
+
+            except ImportError:
+                print('Could not import gdal')
         plt.show()
 
     if interactive and not video:
@@ -206,8 +249,10 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
         ax.axis([0, grid_size * ncols, 0, grid_size * nrows])
         ax.set_xlabel('Distance(m)')
         ax.set_ylabel('Distance(m)')
-        ax = plt.subplot(1, 1, 1)
-        title = plt.title("Water Table depth - meters below ground. Time = 0 hours")
+        if use_elevation:
+            plt.title("Water Table depth - meters. Time = 0 hours")
+        else:
+            plt.title("Water Table depth - meters below ground. Time = 0 hours")
         if dem is not None:
             grid = Dem(dem)
             ax.set_xlim(grid.x_coordinates.min(), grid.x_coordinates.max())
@@ -236,9 +281,10 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
             h5datapsl2d[h5datapsl2d == -1.0] = np.nan
             if use_elevation:
                 h5datapsl2d = elevations - h5datapsl2d
+                title.set_text("Water Table depth - meters. Time = %7.0f hours" % psltimes[time])
+            else:
+                title.set_text("Water Table depth - meters below ground. Time = %7.0f hours" % psltimes[time])
             cax.set_data(h5datapsl2d)
-
-            title.set_text("Water Table depth - meters below ground. Time = %7.0f hours" % psltimes[time])
             plt.close()
             return cax,
 
