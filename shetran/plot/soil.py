@@ -143,7 +143,7 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
                 for idx in range(len(point_depths)):
                     f.write(str(point_depths[idx]))
                     for point in point_moisture:
-                        f.write(',{:.2f}'.format(point[idx]))
+                        f.write(',{:.3f}'.format(point[idx]))
                     f.write('\n')
 
         plt.show()
@@ -352,7 +352,7 @@ def times(h5_file, timeseries_locations, selected_number_of_layers, dem=None, ou
                     for idx in range(len(point_depths)):
                         f.write(str(point_depths[idx]))
                         for time in time_moisture:
-                            f.write(',{:.2f}'.format(time[idx]))
+                            f.write(',{:.3f}'.format(time[idx]))
                         f.write('\n')
 
             plt.show()

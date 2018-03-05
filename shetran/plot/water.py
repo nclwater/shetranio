@@ -116,11 +116,11 @@ def balance(h5_file, timeseries_locations, start_date, out_dir=None, dem=None, i
             with open(os.path.join(out_dir,'waterbalance-timeseries-{}.csv'.format(point)), 'w') as f:
                 f.write('date,total_evaporation,soil_moisture\n')
                 for i in range(len(times)):
-                    f.write('{},{:.2f},{:.2f}\n'.format(times[i], total_evap[i], theta[i]))
+                    f.write('{},{:.3f},{:.3f}\n'.format(times[i], total_evap[i], theta[i]))
             with open(os.path.join(out_dir,'waterbalance-timeseries-rainfall-{}.csv'.format(point)), 'w') as f:
                 f.write('date,rainfall\n')
                 for i in range(len(rain_times)):
-                    f.write('{},{:.2f}\n'.format(rain_times[i], net_rain[i]))
+                    f.write('{},{:.3f}\n'.format(rain_times[i], net_rain[i]))
 
         plt.show()
 

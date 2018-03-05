@@ -34,7 +34,7 @@ def hydrograph(in_file, out_dir=None):
 
     obs, sim, days = _read(in_file)
 
-    plt.figure(dpi=300, figsize=[12.0, 5.0])
+    plt.figure(figsize=[12.0, 5.0])
     plt.subplots_adjust(bottom=0.2)
     plt.plot_date(x=days, y=obs, fmt="b-")
     plt.plot_date(x=days, y=sim, fmt="r-", alpha=0.75)
@@ -131,7 +131,7 @@ def exceedance(in_file, out_dir=None):
 
     percentiles_list.reverse()
 
-    plt.figure(figsize=[12.0, 5.0], dpi=300)
+    plt.figure(figsize=[12.0, 5.0])
     plt.plot(percentiles_list, obs_percentiles, c="b", ls="-")
     plt.plot(percentiles_list, sim_percentiles, c="r", ls="-", alpha=0.75)
     plt.title("Flow duration curve of observed vs simulated flows")
@@ -178,7 +178,7 @@ def water_balance(in_file, out_dir=None):
 
     months = range(1,13)
 
-    plt.figure(dpi=300, figsize=[12.0, 5.0])
+    plt.figure(figsize=[12.0, 5.0])
     plt.plot(months, obs_months, c="b", ls="-")
     plt.plot(months, sim_months, c="r", ls="-", alpha=0.75)
     plt.title("Monthly Average Flows")

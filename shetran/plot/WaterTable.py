@@ -111,7 +111,7 @@ def points(h5_file, timeseries_locations, start_date, out_dir=None, dem=None):
             for idx in range(len(times)):
                 f.write(str(times[idx]))
                 for point in point_depths:
-                    f.write(',{:.2f}'.format(point[idx]))
+                    f.write(',{:.3f}'.format(point[idx]))
                 f.write('\n')
 
     plt.show()
@@ -347,7 +347,7 @@ def area3d(h5_file, dem=None, out_dir=None, interactive=True, azi=0):
     ntimes = dimstime[0]
 
     def plot(azi):
-        fig = plt.figure(figsize=[12.0, 5.0], dpi=300)
+        fig = plt.figure(figsize=[12.0, 5.0])
 
 
         # ax = plt.subplot(1, 1, 1, projection='3d')
