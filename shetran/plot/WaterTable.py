@@ -208,10 +208,11 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
 
 
                 if dem is not None:
-                    ds.SetGeoTransform((grid.x_coordinates.min(), grid_size, 0, grid.y_coordinates.max(), 0, -1*grid_size))
+                    ds.SetGeoTransform((grid.x_lower_left, grid_size, 0,
+                                        grid.y_lower_left + grid_size * depth_array.shape[0], 0, -1*grid_size))
                 else:
                     print('No DEM supplied for geo-referencing')
-                    ds.SetGeoTransform((0, grid_size, 0, 0, 0, grid_size))
+                    ds.SetGeoTransform((0, grid_size, 0, 0, 0, -1*grid_size))
 
                 band = ds.GetRasterBand(1)
                 band.WriteArray(depth_array)
