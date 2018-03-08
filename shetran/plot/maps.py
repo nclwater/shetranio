@@ -13,25 +13,30 @@ def extract_elevation(h5_file, out_dir, dem):
     h5 = Hdf(h5_file)
     dem = Dem(dem)
 
-    elevation = np.full(h5.sv4_numbering.shape, np.nan)
+    elevation = np.full(h5.sv4_numbering.shape, np.nan).flatten()
     se = h5.surface_elevation
     n = h5.number
     na = -1
 
+    flat_numbers = h5.sv4_numbering[:].flatten()
 
     for surface, number in [
         [se.square, n.square],
-        [se.north_bank, n.north_bank],
-        [se.east_bank, n.east_bank],
-        [se.south_bank, n.south_bank],
-        [se.west_bank, n.west_bank],
         [se.north_link, n.north_link],
         [se.east_link, n.east_link],
         [se.south_link, n.south_link],
         [se.west_link, n.west_link]
     ]:
-        for idx, elev in enumerate(surface[surface != na]):
-            elevation[h5.sv4_numbering[:] == number[number != na][idx]] = elev
+
+        unique, inverse = np.unique(flat_numbers, return_inverse=True)
+
+        unique_elevations = np.full(unique.shape, np.nan)
+        unique_elevations[np.searchsorted(unique, number[number!=na])] = surface[surface!=na]
+        all_elevations = unique_elevations[inverse]
+        elevation[~np.isnan(all_elevations)] = all_elevations[~np.isnan(all_elevations)]
+
+    elevation = elevation.reshape(h5.sv4_numbering.shape)
+
 
     cell_size_factor = h5.sv4_elevation.shape[0]/h5.surface_elevation.square.shape[0]
     cell_size = dem.cell_size / cell_size_factor
@@ -74,7 +79,6 @@ def element_numbers(h5_file, out_dir, dem):
     cell_size = dem.cell_size / cell_size_factor
 
     plt.imshow(numbers)
-    print(numbers.shape)
     plt.show()
 
     driver = gdal.GetDriverByName('GTiff')
