@@ -171,12 +171,12 @@ class Hdf:
                 d[key] = {}
                 for constant_key in attr.__dict__.keys():
                     constant_attr = attr.__dict__[constant_key]
-                    d[key][constant_key] = constant_attr
+                    d[key][constant_key] = constant_attr.to_list()
 
             elif type(attr) == Variable:
                 d[key] = {}
-                d[key]['values'] = attr.values[:]
-                d[key]['times'] = attr.times[:]
+                d[key]['values'] = attr.values[:].to_list()
+                d[key]['times'] = attr.times[:].to_list()
 
         return d
 
