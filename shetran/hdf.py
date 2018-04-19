@@ -197,7 +197,7 @@ class Hdf:
 
         indices = np.indices(numbers.shape)
         result = []
-        for n in np.unique(numbers):
+        for n in np.unique(numbers)[1:]:
             a = indices[:, numbers == n]
             y1 = (numbers.shape[0]-a.min(axis=1)[0]) * dem.cell_size + dem.x_lower_left
             x1 = a.min(axis=1)[1] * dem.cell_size + dem.y_lower_left
