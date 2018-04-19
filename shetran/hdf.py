@@ -180,4 +180,47 @@ class Hdf:
 
         return d
 
+    def to_geom(self, dem, srs=27700):
+        from osgeo import ogr
+        from osgeo import osr
+        dem = Dem(dem)
+
+        source = osr.SpatialReference()
+        source.ImportFromEPSG(srs)
+
+        target = osr.SpatialReference()
+        target.ImportFromEPSG(4326)
+
+        transform = osr.CoordinateTransformation(source, target)
+
+        numbers = self.sv4_numbering[:]
+
+        indices = np.indices(numbers.shape)
+        result = []
+        for n in np.unique(numbers):
+            a = indices[:, numbers == n]
+            y1 = (numbers.shape[0]-a.min(axis=1)[0]) * dem.cell_size + dem.x_lower_left
+            x1 = a.min(axis=1)[1] * dem.cell_size + dem.y_lower_left
+            y2 = (numbers.shape[0]-a.max(axis=1)[0]) * dem.cell_size + dem.x_lower_left
+            x2 = a.max(axis=1)[1] * dem.cell_size + dem.y_lower_left
+
+            point = ogr.CreateGeometryFromWkt("POINT ({} {})".format(x1, y1))
+            point.Transform(transform)
+
+            x1 = point.GetX()
+            y1 = point.GetY()
+
+            point = ogr.CreateGeometryFromWkt("POINT ({} {})".format(x2, y2))
+            point.Transform(transform)
+
+            x2 = point.GetX()
+            y2 = point.GetY()
+
+
+            result.append([[x1, y1], [x1, y2], [x2, y2], [x2, y1], [x1, y1]])
+
+        # unique, inverse = np.unique(numbers, return_inverse=True)
+
+        return {'geoms':result}
+
 
