@@ -28,13 +28,13 @@ class Constant:
 
 class Variable:
     def __init__(self, variable):
-        self.values = variable['value']
-        self.times = variable['time']
+        self.values = variable['value'][:]
+        self.times = variable['time'][:]
 
 class Hdf:
     def __init__(self, path):
         self.path = path
-        self.file = h5py.File(path, 'r')
+        self.file = h5py.File(path, 'r', driver='core')
         self.catchment_maps = self.file['CATCHMENT_MAPS']
         self.sv4_elevation = self.catchment_maps['SV4_elevation']
         self.palette1 = self.catchment_maps['palette1']
@@ -196,13 +196,18 @@ class Hdf:
         numbers = self.sv4_numbering[:]
 
         indices = np.indices(numbers.shape)
-        result = []
+        features = []
+
+        cell_size_factor = self.sv4_elevation.shape[0] / self.surface_elevation.square.shape[0]
+
+        cell_size = dem.cell_size / cell_size_factor
+
         for n in np.unique(numbers)[1:]:
             a = indices[:, numbers == n]
-            y1 = (numbers.shape[0]-a.min(axis=1)[0]) * dem.cell_size + dem.x_lower_left
-            x1 = a.min(axis=1)[1] * dem.cell_size + dem.y_lower_left
-            y2 = (numbers.shape[0]-a.max(axis=1)[0]) * dem.cell_size + dem.x_lower_left
-            x2 = a.max(axis=1)[1] * dem.cell_size + dem.y_lower_left
+            y1 = (numbers.shape[0]-a.min(axis=1)[0]) * cell_size + dem.y_lower_left - dem.cell_size
+            x1 = a.min(axis=1)[1] * cell_size + dem.x_lower_left -  dem.cell_size
+            y2 = (numbers.shape[0]-a.max(axis=1)[0]) * cell_size + dem.y_lower_left - dem.cell_size
+            x2 = a.max(axis=1)[1] * cell_size + dem.x_lower_left - dem.cell_size
 
             point = ogr.CreateGeometryFromWkt("POINT ({} {})".format(x1, y1))
             point.Transform(transform)
@@ -216,11 +221,107 @@ class Hdf:
             x2 = point.GetX()
             y2 = point.GetY()
 
+            properties = {}
 
-            result.append([[y1, x1], [y1, x2], [y2, x2], [y2, x1], [y1, x1]])
+            if self.overland_flow:
+                properties['overland_flow'] = {
+                    'values':(np.absolute(self.overland_flow.values[n-1,:,:]).max(axis=0).astype(np.float64).tolist()
+                              if n-1<self.overland_flow.values.shape[0] else [])
+                         }
+            if self.ph_depth:
+                properties['ph_depth'] = {
+                    'values':self.ph_depth.values[:][self.number.square==n].flatten().tolist()
+                }
+
+            if self.surface_depth:
+                properties['surface_depth'] = {
+                    'values':(self.surface_depth.values[n-1,:].astype(np.float64).tolist()
+                              if n-1<self.overland_flow.values.shape[0] else [])
+                         }
+
+            if self.canopy_storage:
+                properties['canopy_storage'] = {
+                    'values':self.canopy_storage.values[:][self.number.square==n].flatten().tolist()
+                }
+            if self.theta:
+                properties['theta'] = {
+                    'values': self.theta.values[:,:,0,1:][self.number.square == n].flatten().tolist()
+                }
+
+            properties['number'] = int(n)
+
+
+            features.append({
+                'type':'Feature',
+                'geometry':{
+                    'type':'Polygon',
+                    'coordinates':[[[x1, y1], [x1, y2], [x2, y2], [x2, y1], [x1, y1]]]
+                },
+                'properties':properties
+            })
 
         # unique, inverse = np.unique(numbers, return_inverse=True)
 
-        return {'geoms':result}
+
+        variables = []
+
+        if self.ph_depth:
+            variables.append(
+                {
+                'name': 'ph_depth',
+                'longName':'Phreatic Depth (m)',
+                'max': self.ph_depth.values[:][self.ph_depth.values[:] != -1].astype(np.float64).max(),
+                'min': self.ph_depth.values[:][self.ph_depth.values[:] != -1].astype(np.float64).min(),
+                'times': self.ph_depth.times[:].tolist()
+                })
+
+        if self.overland_flow:
+            variables.append(
+                {
+                'name': 'overland_flow',
+                'longName':'Overland Flow (cumecs)',
+                'max': np.absolute(self.overland_flow.values[:].astype(np.float64)).max(),
+                'min': np.absolute(self.overland_flow.values[:].astype(np.float64)).min(),
+                'times':self.overland_flow.times[:].tolist()
+                })
+        if self.canopy_storage:
+            variables.append(
+                {
+                'name': 'canopy_storage',
+                'longName':'Canopy Storage (mm)',
+                'max': self.canopy_storage.values[:][self.canopy_storage.values[:] != -1].astype(np.float64).max(),
+                'min': self.canopy_storage.values[:][self.canopy_storage.values[:] != -1].astype(np.float64).min(),
+                'times': self.canopy_storage.times[:].tolist()
+                })
+        if self.surface_depth:
+            variables.append(
+                {
+                    'name': 'surface_depth',
+                    'longName': 'Surface Depth (m)',
+                    'max': self.surface_depth.values[:].astype(np.float64).max(),
+                    'min': self.surface_depth.values[:].astype(np.float64).min(),
+                    'times': self.surface_depth.times[:].tolist()
+                }
+            )
+        if self.theta:
+            variables.append(
+                {
+                    'name': 'theta',
+                    'longName': 'Soil Moisture (m3/m3)',
+                    'max': self.theta.values[:,:,0,1:][self.theta.values[:,:,0,1:] != -1].astype(np.float64).max(),
+                    'min': self.theta.values[:,:,0,1:][self.theta.values[:,:,0,1:] != -1].astype(np.float64).min(),
+                    'times': self.theta.times[1:].tolist()
+                }
+            )
+
+
+        return {
+            'geom':
+                    {
+                        'type':'FeatureCollection',
+                        'features':features
+                    },
+            'variables':variables
+        }
 
 
