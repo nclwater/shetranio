@@ -248,6 +248,10 @@ class Hdf:
                     'values': self.theta.values[:,:,0,1:][self.number.square == n].flatten().tolist()
                 }
 
+            properties['dem'] = {
+                'value': float(self.sv4_elevation[numbers == n][0])
+            }
+
             properties['number'] = int(n)
 
 
