@@ -36,10 +36,10 @@ class Hdf:
         self.path = path
         self.file = h5py.File(path, 'r', driver='core')
         self.catchment_maps = self.file['CATCHMENT_MAPS']
-        self.sv4_elevation = self.catchment_maps['SV4_elevation']
+        self.sv4_elevation = self.catchment_maps['SV4_elevation'][:]
         self.palette1 = self.catchment_maps['palette1']
         self.catchment_spreadsheets = self.file['CATCHMENT_SPREADSHEETS']
-        self.sv4_numbering = self.catchment_spreadsheets['SV4_numbering']
+        self.sv4_numbering = self.catchment_spreadsheets['SV4_numbering'][:]
         self.constants = self.file['CONSTANTS']
         self.centroid = Constant(self.constants['centroid'])
         self.grid_dxy = self.constants['grid_dxy']
@@ -312,8 +312,10 @@ class Hdf:
                 {
                     'name': 'theta',
                     'longName': 'Soil Moisture (m3/m3)',
-                    'max': self.theta.values[:,:,0,1:][self.theta.values[:,:,0,1:] != -1].astype(np.float64).max(),
-                    'min': self.theta.values[:,:,0,1:][self.theta.values[:,:,0,1:] != -1].astype(np.float64).min(),
+                    'max': (self.theta.values[:,:,0,1:][self.theta.values[:,:,0,1:] != -1].astype(np.float64).max()
+                        if len(self.theta.values[:,:,0,1:][self.theta.values[:,:,0,1:] != -1])>0 else None),
+                    'min': (self.theta.values[:,:,0,1:][self.theta.values[:,:,0,1:] != -1].astype(np.float64).min()
+                        if len(self.theta.values[:, :, 0, 1:][self.theta.values[:, :, 0, 1:] != -1]) > 0 else None),
                     'times': self.theta.times[1:].tolist()
                 }
             )
