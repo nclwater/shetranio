@@ -7,7 +7,8 @@ import numpy as np
 def create(outline: str, resolution: int, output_path: str) -> None:
     """
     Converts a vector catchment outline to a gridded mask at specified resolution
-    Needs to be aligned to same coordinates as DEM / other data
+    Mask output is aligned to coordinates 0 0
+    Any grid cells intersected by the geometry are designated as within the domain
 
     :param outline: path to a zipped shapefile, must contain one feature
     :param resolution: resolution of the output mask in metres
@@ -26,8 +27,8 @@ def create(outline: str, resolution: int, output_path: str) -> None:
     geom = feature.GetGeometryRef()
     minX, maxX, minY, maxY = geom.GetEnvelope()
 
-    minX = math.floor(minX / resolution)*resolution
-    maxX = math.ceil(maxX / resolution)*resolution
+    minX = math.floor(minX / resolution) * resolution
+    maxX = math.ceil(maxX / resolution) * resolution
     minY = math.floor(minY / resolution) * resolution
     maxY = math.ceil(maxY / resolution) * resolution
 
@@ -52,3 +53,47 @@ def create(outline: str, resolution: int, output_path: str) -> None:
     # Convert to ASCII grid
     driver = gdal.GetDriverByName("AAIGrid")
     driver.CreateCopy(output_path, target_ds, 0)
+
+def extract(mask_path: str, input_path: str, output_path: str, resolution: int) -> None:
+    """
+    Input data and mask must aligned to the same coordinate grid
+
+    :param mask_path: path to mask file in GDAL recognised format
+    :param input_path: path to input data in GDAL recognised format
+    :param output_path: path to output data in GDAL recognised format
+    :param resolution: resolution of
+    """
+    mask_file = open(mask_path, "r")
+
+    n_cols_line = mask_file.readline()
+    n_cols_list = n_cols_line.rstrip().split()
+    n_cols = float(n_cols_list[1])
+
+    n_rows_line = mask_file.readline()
+    n_rows_list = n_rows_line.rstrip().split()
+    n_rows = float(n_rows_list[1])
+
+    bx_line = mask_file.readline()
+    bx_list = bx_line.rstrip().split()
+    x_lower_left_corner = float(bx_list[1])
+
+    by_line = mask_file.readline()
+    by_list = by_line.rstrip().split()
+    y_lower_left_corner = float(by_list[1])
+
+    mask_file.close()
+    ds = gdal.Open(input_path)
+
+    start_line_number = ds.RasterYSize - y_lower_left_corner / resolution - n_rows
+    start_index_number = x_lower_left_corner / resolution
+
+    gdal.Translate(output_path,
+                   ds,
+                   srcWin=
+                   [
+                       start_index_number,
+                       start_line_number,
+                       n_cols,
+                       n_rows
+                   ],
+                   format='AAIGrid')
