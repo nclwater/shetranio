@@ -7,9 +7,8 @@ class TestClipper(unittest.TestCase):
     output_path = 'outputs/mask.txt'
 
     def test_create_mask(self):
-        with open(self.outline_path, 'rb') as f:
-            outline = bytes(f.read())
-        mask.create(outline, self.resolution, self.output_path)
+
+        mask.create(self.outline_path, self.resolution, self.output_path)
 
 if __name__ == '__main__':
     unittest.main()

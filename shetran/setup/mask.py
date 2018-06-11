@@ -3,18 +3,17 @@ import os
 import zipfile
 import math
 import numpy as np
-import io
 
-def create(outline: bytes, resolution: int, output_path: str) -> None:
+def create(outline: str, resolution: int, output_path: str) -> None:
     """
     Converts a vector catchment outline to a gridded mask at specified resolution
     Needs to be aligned to same coordinates as DEM / other data
 
-    :param outline: a zipped shapefile in bytes, must contain one feature
+    :param outline: path to a zipped shapefile, must contain one feature
     :param resolution: resolution of the output mask in metres
     :param output_path: location to save the created tiff file
     """
-    zipped_file = zipfile.ZipFile(io.BytesIO(outline), 'r')
+    zipped_file = zipfile.ZipFile(outline, 'r')
     shp = [f.filename for f in zipped_file.infolist() if f.filename.endswith('shp')][0]
     for f in zipped_file.infolist():
         gdal.FileFromMemBuffer(os.path.join('/vsimem', f.filename), bytes(zipped_file.read(f.filename)))

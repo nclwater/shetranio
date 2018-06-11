@@ -4,21 +4,21 @@ import shutil
 
 class Outputs:
     def __init__(self, run):
-        self.dem = os.path.join(run.directory, "DEM.txt")
-        self.min_dem = os.path.join(run.directory, "MinDEM.txt")
-        self.pe = os.path.join(run.directory, "PE.txt")
-        self.rain = os.path.join(run.directory, "Rain.txt")
-        self.veg = os.path.join(run.directory, "LandCover.txt")
-        self.soil = os.path.join(run.directory, "Soil.txt")
-        self.lakes = os.path.join(run.directory, "Lakes.txt")
-        self.rain_timeseries = os.path.join(run.directory, "RainTimeSeries.csv")
-        self.observed_flow = os.path.join(os.path.join(run.directory, "FlowData{}-{}.csv"
+        self.dem = os.path.join(run.path, "DEM.txt")
+        self.min_dem = os.path.join(run.path, "MinDEM.txt")
+        self.pe = os.path.join(run.path, "PE.txt")
+        self.rain = os.path.join(run.path, "Rain.txt")
+        self.veg = os.path.join(run.path, "LandCover.txt")
+        self.soil = os.path.join(run.path, "Soil.txt")
+        self.lakes = os.path.join(run.path, "Lakes.txt")
+        self.rain_timeseries = os.path.join(run.path, "RainTimeSeries.csv")
+        self.observed_flow = os.path.join(os.path.join(run.path, "FlowData{}-{}.csv"
                                                        .format(run.start_date.replace("-", "."),
                                                                run.end_date.replace("-", "."))))
-        self.mask = os.path.join(run.directory, "Mask.txt")
-        self.min_temp_timeseries = os.path.join(run.directory, "MinTempTimeSeries.csv")
-        self.max_temp_timeseries = os.path.join(run.directory, "MaxTempTimeSeries.csv")
-        self.pe_timeseries = os.path.join(run.directory, "PeTimeSeries.csv")
+        self.mask = os.path.join(run.path, "Mask.txt")
+        self.min_temp_timeseries = os.path.join(run.path, "MinTempTimeSeries.csv")
+        self.max_temp_timeseries = os.path.join(run.path, "MaxTempTimeSeries.csv")
+        self.pe_timeseries = os.path.join(run.path, "PeTimeSeries.csv")
         self.simulated_discharge = "SimulatedDischarge.txt"
 
 
@@ -31,7 +31,7 @@ class Inputs:
         self.pe = "../Inputs/{0}BngMaps/{0}PeRainBng.txt".format(run.resolution)
         self.rain = "../Inputs/{0}BngMaps/{0}PeRainBng.txt".format(run.resolution)
         self.lakes = "../Inputs/1kmBngMaps/lakes1kmBNG.txt"
-        if run.upload is None:
+        if run.boundary is None:
             self.mask = "../Inputs/{0}BngMasks/{1}.txt".format(run.resolution, run.gauge_id)
         else:
             self.mask = None
@@ -40,24 +40,30 @@ class Inputs:
 class Run:
     def __init__(
             self,
-            gauge_id,
             resolution,
             start_date,
             end_date,
-            upload=None
+            gauge_id=None,
+            boundary=None,
+            path=None,
+            overwrite=True
     ):
         """start and end dates must be formatted YYYY-MM-DD and resolution is either '1km', '500m' or '100m'"""
         self.gauge_id = gauge_id
         self.resolution = resolution
+        self.resolution.f = 3
         self.start_date = start_date
         self.end_date = end_date
-        self.directory = os.path.join('outputs', str(self.gauge_id))
+        self.path = os.path.join('outputs', str(self.gauge_id)) if path is None else path
 
-        if os.path.exists(self.directory):
-            shutil.rmtree(self.directory)
-        os.mkdir(self.directory)
 
-        self.upload = upload
+        if os.path.exists(self.path) and overwrite:
+            shutil.rmtree(self.path)
+            
+        if not os.path.exists(path):
+            os.mkdir(path)
+            
+        self.boundary = boundary
         self.outputs = Outputs(self)
         self.inputs = Inputs(self)
         self.lakes_exist = os.path.exists(self.inputs.lakes)

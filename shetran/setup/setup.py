@@ -2,13 +2,13 @@ import os
 import shutil
 import subprocess
 from datetime import *
-from run import Run
+from .run import Run
 import numpy as np
 import gdal
-import gear
+from . import gear
 
-import clipper
-from library import make_lib_file
+from . import mask
+from .library import make_lib_file
 
 rainfall_source = 'GEAR'
 
@@ -67,8 +67,8 @@ def setup(run: Run):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    if run.upload is not None:
-        clipper.create_mask(run)
+    if run.boundary is not None:
+        mask.create(run.outline, run.resolution, out)
     else:
         shutil.copy2(run.inputs.mask, run.outputs.mask)
 
