@@ -2,6 +2,7 @@ import subprocess
 import os
 from datetime import datetime
 import netCDF4 as nc
+import gdal
 
 
 def download_ceh_gear(username, password, output_directory=None, start=1890, end=2016):
@@ -27,32 +28,34 @@ def extract(data_path: str,
             end_date: datetime,
             grid_path: str,
             ts_path: str) -> None:
-    mask = open(mask_path, "r")
 
-    ncols = float(mask.readline().rstrip().split()[1])
-    nrows = float(mask.readline().rstrip().split()[1])
-    xllc = float(mask.readline().rstrip().split()[1])
-    yllc = float(mask.readline().rstrip().split()[1])
-    cell_size = float(mask.readline().rstrip().split()[1])
-    no_data = mask.readline().rstrip().split()[1]
+    mask = gdal.Open(mask_path)
+
+    x_min, x_res, x_skew, y_max, y_skew, y_res = mask.GetGeoTransform()
+
+    ncols = mask.RasterXSize
+    nrows = mask.RasterYSize
+
+    x_max = x_min + (ncols * x_res)
+    y_min = y_max + (nrows * y_res)
+    no_data = mask.GetRasterBand(1).GetNoDataValue()
 
     new_mask_list = []
 
     index_list = []
     j = 0
     ticker = 1
-    for line in mask:
-        line_list = line.rstrip().split()
+    for line_list in mask.ReadAsArray():
         new_mask_line_list = []
         for i in range(len(line_list)):
             if line_list[i] == no_data:
-                new_mask_line_list.append(no_data)
+                new_mask_line_list.append(str(no_data))
             else:
                 new_mask_line_list.append(str(ticker))
                 ticker += 1
 
-                mask_x = (i * cell_size) + xllc + (cell_size / 2)
-                mask_y = (nrows - j) * cell_size + yllc - (cell_size / 2)
+                mask_x = (i * x_res) + x_min + (x_res / 2)
+                mask_y = (nrows - j) * x_res + y_min - (x_res / 2)
 
                 ceh_gear_resolution = 1000  # metres
 
@@ -104,9 +107,9 @@ def extract(data_path: str,
 
     new_mask.write("ncols\t" + str(ncols) + "\n")
     new_mask.write("nrows\t" + str(nrows) + "\n")
-    new_mask.write("xllcorner\t" + str(xllc) + "\n")
-    new_mask.write("yllcorner\t" + str(yllc) + "\n")
-    new_mask.write("cellsize\t" + str(cell_size) + "\n")
+    new_mask.write("xllcorner\t" + str(x_min) + "\n")
+    new_mask.write("yllcorner\t" + str(y_min) + "\n")
+    new_mask.write("cellsize\t" + str(x_res) + "\n")
     new_mask.write("NODATA_value\t" + str(no_data) + "\n")
 
     for new_line_list in new_mask_list:
