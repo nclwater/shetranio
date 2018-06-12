@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 import netCDF4 as nc
 import gdal
+import numpy as np
 
 
 def download_ceh_gear(username, password, output_directory=None, start=1890, end=2016):
@@ -40,94 +41,56 @@ def extract(data_path: str,
     y_min = y_max + (nrows * y_res)
     no_data = mask.GetRasterBand(1).GetNoDataValue()
 
-    new_mask_list = []
+    mask_x = np.arange(x_min, x_max + x_res, x_res)
+    mask_y = np.arange(y_min, y_max + x_res, x_res)
 
-    index_list = []
-    j = 0
-    ticker = 1
-    for line_list in mask.ReadAsArray():
-        new_mask_line_list = []
-        for i in range(len(line_list)):
-            if line_list[i] == no_data:
-                new_mask_line_list.append(str(no_data))
-            else:
-                new_mask_line_list.append(str(ticker))
-                ticker += 1
+    mask_y_idx, mask_x_idx = np.where(mask.ReadAsArray()!=no_data)
 
-                mask_x = (i * x_res) + x_min + (x_res / 2)
-                mask_y = (nrows - j) * x_res + y_min - (x_res / 2)
+    mask_y_coords = mask_y[mask_y_idx]
+    mask_x_coords = mask_x[mask_x_idx]
 
-                ceh_gear_resolution = 1000  # metres
+    nearest = lambda a, v: a[(np.abs(a - v)).argmin()]
 
-                # 1251 must be the top of the gear data?
-                y_idx, x_idx = 1251 - 1 - int(mask_y / ceh_gear_resolution), int(mask_x / ceh_gear_resolution)
+    ds = nc.Dataset(data_path)
 
-                index_list.append((y_idx, x_idx))
+    ds_x = ds.variables['x'][:]
+    ds_y = ds.variables['y'][:]
 
-        new_mask_list.append(new_mask_line_list)
+    data_y_coords = [nearest(ds_y, y_val) for y_val in mask_y_coords]
+    data_x_coords = [nearest(ds_x, x_val) for x_val in mask_x_coords]
 
-        j += 1
+    data_y_mask = np.isin(ds_y, data_y_coords)
+    data_x_mask = np.isin(ds_x, data_x_coords)
 
-    start_year = start_date.year
-    end_year = end_date.year
-    start_index = start_date.timetuple().tm_yday - 1
-    end_index = end_date.timetuple().tm_yday
 
-    grid = [[] for i in range(len(index_list))]
+    values = ds.variables['rainfall_amount'][:3, data_y_mask, data_x_mask]
 
-    for year in range(start_year, end_year + 1, 1):
-        f = nc.Dataset(data_path)
+    y_vals = np.unique(data_y_coords).astype(int)
+    x_vals = np.unique(data_x_coords).astype(int)
 
-        for grid_square in range(len(index_list)):
-            if index_list[grid_square] in index_list[:grid_square]:
-                # check if cell has already been read from netCDF
-                first_cell_series = grid[index_list.index(index_list[grid_square])]
-                grid[grid_square].extend(first_cell_series[len(grid[grid_square]):])
-                continue
+    output = np.full((ncols, nrows), no_data).astype(int)
 
-            j, i = index_list[grid_square]
+    series = []
 
-            if year == start_year:
-                if year == end_year:
-                    ts = f.variables['rainfall_amount'][start_index:end_index, j, i]
-                else:
-                    ts = f.variables['rainfall_amount'][start_index:, j, i]
+    for i in range(len(mask_x_coords)):
 
-            elif year == end_year:
-                ts = f.variables['rainfall_amount'][:end_index, j, i]
+        data_y = data_y_coords[i]
+        data_x = data_x_coords[i]
+        x = mask_x_coords[i]
+        y = mask_y_coords[i]
+        vals = values[:, np.where(y_vals==data_y)[0][0],np.where(x_vals==data_x)[0][0]]
+        series.append(vals)
+        output[np.where(mask_y==y), np.where(mask_x==x)] = i+1
 
-            else:
-                ts = f.variables['rainfall_amount'][:, j, i]
+    driver = gdal.GetDriverByName("GTiff")
+    grid = driver.CreateCopy(grid_path, mask, 0)
+    grid.GetRasterBand(1).WriteArray(output)
+    print(grid.ReadAsArray().astype(int))
 
-            grid[grid_square].extend(ts)
+    driver = gdal.GetDriverByName("AAIGrid")
+    driver.CreateCopy(grid_path, grid, 0)
 
-        f.close()
-
-    new_mask = open(grid_path, "w")
-
-    new_mask.write("ncols\t" + str(ncols) + "\n")
-    new_mask.write("nrows\t" + str(nrows) + "\n")
-    new_mask.write("xllcorner\t" + str(x_min) + "\n")
-    new_mask.write("yllcorner\t" + str(y_min) + "\n")
-    new_mask.write("cellsize\t" + str(x_res) + "\n")
-    new_mask.write("NODATA_value\t" + str(no_data) + "\n")
-
-    for new_line_list in new_mask_list:
-        new_line = " ".join(new_line_list)
-        new_mask.write(new_line + "\n")
-
-    new_mask.close()
-
-    new_ts = open(ts_path, "w")
-
-    new_ts.write(",".join([str(a + 1) for a in range(len(grid))]) + "\n")
-
-    for d in range(len(grid[0])):
-        new_ts_line_list = []
-        for b in range(len(grid)):
-            new_ts_line_list.append(str(grid[b][d]))
-
-        new_ts.write(",".join(new_ts_line_list) + "\n")
-
-    new_ts.close()
-
+    with open(ts_path, 'w') as f:
+        f.write(','.join(np.arange(1, len(series)+1).astype(str))+'\n')
+        for i in range(len(series[0])):
+            f.write(','.join([str(cell_series[i]) for cell_series in series])+'\n')
