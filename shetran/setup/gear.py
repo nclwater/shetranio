@@ -1,5 +1,7 @@
 import subprocess
 import os
+from datetime import datetime
+import netCDF4 as nc
 
 
 def download_ceh_gear(username, password, output_directory=None, start=1890, end=2016):
@@ -18,12 +20,14 @@ def download_ceh_gear(username, password, output_directory=None, start=1890, end
 
         subprocess.call(["curl", "--user", "{}:{}".format(username, password),  url, "-o", output_file])
 
-from datetime import datetime
-import netCDF4 as nc
 
-
-def extract(run):
-    mask = open(run.outputs.mask, "r")
+def extract(data_path: str,
+            mask_path: str,
+            start_date: datetime,
+            end_date: datetime,
+            grid_path: str,
+            ts_path: str) -> None:
+    mask = open(mask_path, "r")
 
     ncols = float(mask.readline().rstrip().split()[1])
     nrows = float(mask.readline().rstrip().split()[1])
@@ -61,8 +65,6 @@ def extract(run):
 
         j += 1
 
-    start_date = datetime.strptime(run.start_date, '%Y-%M-%d')
-    end_date = datetime.strptime(run.end_date, '%Y-%M-%d')
     start_year = start_date.year
     end_year = end_date.year
     start_index = start_date.timetuple().tm_yday - 1
@@ -71,7 +73,7 @@ def extract(run):
     grid = [[] for i in range(len(index_list))]
 
     for year in range(start_year, end_year + 1, 1):
-        f = nc.Dataset("../Inputs/ceh-gear/CEH_GEAR_daily_GB_" + str(year) + ".nc", mode='r')
+        f = nc.Dataset(data_path)
 
         for grid_square in range(len(index_list)):
             if index_list[grid_square] in index_list[:grid_square]:
@@ -98,7 +100,7 @@ def extract(run):
 
         f.close()
 
-    new_mask = open(run.outputs.rain, "w")
+    new_mask = open(grid_path, "w")
 
     new_mask.write("ncols\t" + str(ncols) + "\n")
     new_mask.write("nrows\t" + str(nrows) + "\n")
@@ -113,7 +115,7 @@ def extract(run):
 
     new_mask.close()
 
-    new_ts = open(run.outputs.rain_timeseries, "w")
+    new_ts = open(ts_path, "w")
 
     new_ts.write(",".join([str(a + 1) for a in range(len(grid))]) + "\n")
 
