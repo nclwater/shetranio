@@ -62,8 +62,13 @@ def extract(data_path: str,
     data_y_mask = np.isin(ds_y, data_y_coords)
     data_x_mask = np.isin(ds_x, data_x_coords)
 
+    time = ds.variables['time']
 
-    values = ds.variables['rainfall_amount'][:3, data_y_mask, data_x_mask]
+    dates = nc.num2date(time[:], time.units, time.calendar)
+    dates_mask = (dates>=start_date)&(dates<=end_date)
+
+
+    values = ds.variables['rainfall_amount'][dates_mask, data_y_mask, data_x_mask]
 
     y_vals = np.unique(data_y_coords).astype(int)
     x_vals = np.unique(data_x_coords).astype(int)
