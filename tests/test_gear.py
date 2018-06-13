@@ -13,11 +13,22 @@ class TestGear(unittest.TestCase):
 
     def test_rain(self):
         gear.extract(self.data_path,
+                     'rainfall_amount',
                      self.mask_path,
                      self.start_date,
                      self.end_date,
                      self.grid_path,
                      self.ts_path)
+
+    def test_pet(self):
+        gear.extract('sample_data/ceh_gear_pet.nc',
+                     'pet',
+                     self.mask_path,
+                     self.start_date,
+                     self.end_date,
+                     'outputs/ceh_pet_grid.txt',
+                     'outputs/ceh_pet.txt'
+                     )
 
 if __name__ == '__main__':
     unittest.main()

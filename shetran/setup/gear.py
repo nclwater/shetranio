@@ -24,6 +24,7 @@ def download_ceh_gear(username, password, output_directory=None, start=1890, end
 
 
 def extract(data_path: str,
+            variable: str,
             mask_path: str,
             start_date: datetime,
             end_date: datetime,
@@ -68,7 +69,7 @@ def extract(data_path: str,
     dates_mask = (dates>=start_date)&(dates<=end_date)
 
 
-    values = ds.variables['rainfall_amount'][dates_mask, data_y_mask, data_x_mask]
+    values = ds.variables[variable][dates_mask, data_y_mask, data_x_mask]
 
     y_vals = np.unique(data_y_coords).astype(int)
     x_vals = np.unique(data_x_coords).astype(int)
