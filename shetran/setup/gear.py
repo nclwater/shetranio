@@ -68,9 +68,13 @@ def extract(data_path: str,
     y_vals = np.unique(data_y_coords).astype(int)
     x_vals = np.unique(data_x_coords).astype(int)
 
-    output = np.full((ncols, nrows), no_data).astype(int)
+    output = np.full((nrows, ncols), no_data).astype(int)
 
     series = []
+    cells = {}
+    number = 1
+
+    # need to fix problem with 100m metre mask - index out of bounds 
 
     for i in range(len(mask_x_coords)):
 
@@ -78,9 +82,13 @@ def extract(data_path: str,
         data_x = data_x_coords[i]
         x = mask_x_coords[i]
         y = mask_y_coords[i]
-        vals = values[:, np.where(y_vals==data_y)[0][0],np.where(x_vals==data_x)[0][0]]
-        series.append(vals)
-        output[np.where(mask_y==y), np.where(mask_x==x)] = i+1
+
+        if (data_x, data_y) not in cells:
+            series.append( values[:, np.where(y_vals == data_y)[0][0], np.where(x_vals == data_x)[0][0]])
+            cells[(data_x, data_y)] = number
+            number += 1
+
+        output[np.where(mask_y==y), np.where(mask_x==x)] = cells[(data_x, data_y)]
 
     driver = gdal.GetDriverByName("GTiff")
     grid = driver.CreateCopy(grid_path, mask, 0)
