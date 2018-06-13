@@ -4,7 +4,7 @@ from datetime import datetime
 
 class TestGear(unittest.TestCase):
     mask_path = 'sample_data/mask.txt'
-    data_path = '/Users/fergus/downloads/CEH_GEAR_daily_GB_2015.nc'
+    data_path = 'sample_data/ceh_gear_rain.nc'
     ts_path = 'outputs/ceh_rain.txt'
     grid_path = 'outputs/ceh_rain_grid.txt'
     start_date = datetime(2015, 1, 1)
