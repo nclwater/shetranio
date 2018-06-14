@@ -97,7 +97,6 @@ def extract(data_path: str,
     tif_path = grid_path + '.tif'
     grid = driver.CreateCopy(tif_path, mask, 0)
     grid.GetRasterBand(1).WriteArray(output)
-    print(grid.ReadAsArray().astype(int))
 
     driver = gdal.GetDriverByName("AAIGrid")
     driver.CreateCopy(grid_path, grid, 0)
