@@ -94,7 +94,8 @@ def extract(data_path: str,
         output[np.where(mask_y==y), np.where(mask_x==x)] = cells[(data_x, data_y)]
 
     driver = gdal.GetDriverByName("GTiff")
-    grid = driver.CreateCopy(grid_path, mask, 0)
+    tif_path = grid_path + '.tif'
+    grid = driver.CreateCopy(tif_path, mask, 0)
     grid.GetRasterBand(1).WriteArray(output)
     print(grid.ReadAsArray().astype(int))
 
