@@ -28,8 +28,8 @@ def extract(data_path: str,
             mask_path: str,
             start_date: datetime,
             end_date: datetime,
-            grid_path: str,
-            ts_path: str) -> None:
+            output_grid_path: str,
+            output_ts_path: str) -> None:
 
     mask = gdal.Open(mask_path)
 
@@ -50,15 +50,14 @@ def extract(data_path: str,
     mask_y_selected = mask_y[mask_y_idx]
     mask_x_selected = mask_x[mask_x_idx]
 
-    nearest = lambda a, v: a[(np.abs(a - v)).argmin()]
 
     ds = nc.Dataset(data_path)
 
     data_x = ds.variables['x'][:]
     data_y = ds.variables['y'][:]
 
-    data_y_selected = [nearest(data_y, y_val) for y_val in mask_y_selected]
-    data_x_selected = [nearest(data_x, x_val) for x_val in mask_x_selected]
+    data_y_selected = [data_y[data_y <= y_val].max() for y_val in mask_y_selected]
+    data_x_selected = [data_x[data_x <= x_val].max() for x_val in mask_x_selected]
 
     data_y_mask = np.isin(data_y, data_y_selected)
     data_x_mask = np.isin(data_x, data_x_selected)
@@ -94,14 +93,14 @@ def extract(data_path: str,
         output[np.where(mask_y==y), np.where(mask_x==x)] = cells[(data_x, data_y)]
 
     driver = gdal.GetDriverByName("GTiff")
-    tif_path = grid_path + '.tif'
+    tif_path = output_grid_path + '.tif'
     grid = driver.CreateCopy(tif_path, mask, 0)
     grid.GetRasterBand(1).WriteArray(output)
 
     driver = gdal.GetDriverByName("AAIGrid")
-    driver.CreateCopy(grid_path, grid, 0)
+    driver.CreateCopy(output_grid_path, grid, 0)
 
-    with open(ts_path, 'w') as f:
+    with open(output_ts_path, 'w') as f:
         f.write(','.join(np.arange(1, len(series)+1).astype(str))+'\n')
         for i in range(len(series[0])):
             f.write(','.join([str(cell_series[i]) for cell_series in series])+'\n')
