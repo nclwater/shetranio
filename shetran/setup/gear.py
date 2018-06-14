@@ -35,11 +35,11 @@ def extract(data_path: str,
 
     x_min, x_res, x_skew, y_max, y_skew, y_res = mask.GetGeoTransform()
 
-    ncols = mask.RasterXSize
-    nrows = mask.RasterYSize
+    mask_width = mask.RasterXSize
+    mask_height = mask.RasterYSize
 
-    x_max = x_min + (ncols * x_res)
-    y_min = y_max + (nrows * y_res)
+    x_max = x_min + (mask_width * x_res)
+    y_min = y_max + (mask_height * y_res)
     no_data = mask.GetRasterBand(1).GetNoDataValue()
 
     mask_x = np.arange(x_min, x_max + x_res, x_res)
@@ -47,50 +47,47 @@ def extract(data_path: str,
 
     mask_y_idx, mask_x_idx = np.where(mask.ReadAsArray()!=no_data)
 
-    mask_y_coords = mask_y[mask_y_idx]
-    mask_x_coords = mask_x[mask_x_idx]
+    mask_y_selected = mask_y[mask_y_idx]
+    mask_x_selected = mask_x[mask_x_idx]
 
     nearest = lambda a, v: a[(np.abs(a - v)).argmin()]
 
     ds = nc.Dataset(data_path)
 
-    ds_x = ds.variables['x'][:]
-    ds_y = ds.variables['y'][:]
+    data_x = ds.variables['x'][:]
+    data_y = ds.variables['y'][:]
 
-    data_y_coords = [nearest(ds_y, y_val) for y_val in mask_y_coords]
-    data_x_coords = [nearest(ds_x, x_val) for x_val in mask_x_coords]
+    data_y_selected = [nearest(data_y, y_val) for y_val in mask_y_selected]
+    data_x_selected = [nearest(data_x, x_val) for x_val in mask_x_selected]
 
-    data_y_mask = np.isin(ds_y, data_y_coords)
-    data_x_mask = np.isin(ds_x, data_x_coords)
+    data_y_mask = np.isin(data_y, data_y_selected)
+    data_x_mask = np.isin(data_x, data_x_selected)
 
     time = ds.variables['time']
 
     dates = nc.num2date(time[:], time.units, time.calendar)
     dates_mask = (dates>=start_date)&(dates<=end_date)
 
-
     values = ds.variables[variable][dates_mask, data_y_mask, data_x_mask]
 
-    y_vals = np.unique(data_y_coords).astype(int)
-    x_vals = np.unique(data_x_coords).astype(int)
+    data_unique_x = np.unique(data_y_selected).astype(int)
+    data_unique_y = np.unique(data_x_selected).astype(int)
 
-    output = np.full((nrows, ncols), no_data).astype(int)
+    output = np.full((mask_height, mask_width), no_data).astype(int)
 
     series = []
     cells = {}
     number = 1
 
-    # need to fix problem with 100m metre mask - index out of bounds 
+    for i in range(len(mask_x_selected)):
 
-    for i in range(len(mask_x_coords)):
-
-        data_y = data_y_coords[i]
-        data_x = data_x_coords[i]
-        x = mask_x_coords[i]
-        y = mask_y_coords[i]
+        data_y = data_y_selected[i]
+        data_x = data_x_selected[i]
+        x = mask_x_selected[i]
+        y = mask_y_selected[i]
 
         if (data_x, data_y) not in cells:
-            series.append( values[:, np.where(y_vals == data_y)[0][0], np.where(x_vals == data_x)[0][0]])
+            series.append( values[:, np.where(data_unique_x == data_y)[0][0], np.where(data_unique_y == data_x)[0][0]])
             cells[(data_x, data_y)] = number
             number += 1
 
