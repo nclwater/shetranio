@@ -192,7 +192,7 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
         fig.colorbar(cax, fraction=0.04, pad=0.10)
 
         if use_elevation:
-            plt.title("Water Table depth - meters. Time = %7.0f hours" % psltimes[current_time])
+            plt.title("Water Table elevation - meters above sea level. Time = %7.0f hours" % psltimes[current_time])
         else:
             plt.title("Water Table depth - meters below ground. Time = %7.0f hours" % psltimes[current_time])
 
@@ -236,17 +236,15 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
          continuous_update=False,
          description=' ',
          readout_format='',
-         layout=Layout(width='100%')))
+         layout=Layout(width='99%')))
 
     elif video:
         from matplotlib import animation, rc
-        from IPython.display import HTML
 
         rc('animation', html='html5')
-        fig = plt.figure(figsize=[12, 5])
 
+        fig, ax = plt.subplots(figsize=[12, 5])
 
-        ax = plt.subplot(1, 1, 1)
         ax.axis([0, grid_size * ncols, 0, grid_size * nrows])
         ax.set_xlabel('Distance(m)')
         ax.set_ylabel('Distance(m)')
@@ -298,7 +296,7 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
         anim = animation.FuncAnimation(fig, plot,
                                        # init_func=init,
                                        frames=ntimes, interval=200, blit=True)
-        return HTML(anim.to_html5_video())
+        return anim
 
     else:
         plot(timestep)
@@ -348,7 +346,7 @@ def area3d(h5_file, dem=None, out_dir=None, interactive=True, azi=0):
     ntimes = dimstime[0]
 
     def plot(azi):
-        fig = plt.figure(figsize=[12.0, 5.0])
+        fig = plt.figure(figsize=[12.0, 5.0], dpi=100)
 
 
         # ax = plt.subplot(1, 1, 1, projection='3d')
@@ -371,14 +369,12 @@ def area3d(h5_file, dem=None, out_dir=None, interactive=True, azi=0):
 
         h5datapsl = val[1:nrows, 1:ncols, ntimes-1]
 
-        r1 = h5datapsl / h5datapsl.max()
-
         # plot phreatic levels (m above ground)
         # r2=dem-h5datapsl
         # r3=r2/np.nanmax(r2)
         # surf = ax.plot_surface(Y, X, dem, rstride=1, cstride=1, facecolors=cm.Blues_r(r3), shade=False)
 
-        ax.plot_surface(Y, X, elevation, rstride=1, cstride=1, facecolors=cm.Blues_r(r1), shade=False)
+        ax.plot_surface(Y, X, elevation, rstride=1, cstride=1, facecolors=cm.Blues_r(h5datapsl), shade=False)
         ax.view_init(elev=20., azim=azi)
         ax.set_zlim(mindem, maxdem)
 
@@ -405,14 +401,14 @@ def area3d(h5_file, dem=None, out_dir=None, interactive=True, azi=0):
         # azi += 10
         # return
     if interactive:
-        interact(plot, azi=IntSlider(value=azi,
+        interact(plot, azi=IntSlider(value=10,
                                      min=0,
                                      max=360,
                                      step=10,
                                      continuous_update=False,
                                      description=' ',
                                      readout_format='',
-                                     layout=Layout(width='100%')))
+                                     layout=Layout(width='99%')))
     else:
         plot(azi)
 
