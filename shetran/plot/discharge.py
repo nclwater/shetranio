@@ -14,7 +14,10 @@ def _read(in_file):
 
         obs.append(float(l[1]))
         sim.append(float(l[2]))
-        days.append(datetime.strptime(l[0], '%d/%m/%Y'))
+    try:
+        days = [datetime.strptime(day, '%d/%m/%Y') for day in days]
+    except ValueError:
+        days = [datetime.strptime(day, '%m/%d/%Y') for day in days]
 
     table.close()
     return obs, sim, days

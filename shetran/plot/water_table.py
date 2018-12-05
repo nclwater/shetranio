@@ -251,9 +251,9 @@ def area(h5_file, dem=None, out_dir=None, interactive=True, timestep=0, time_int
         ax.set_xlabel('Distance(m)')
         ax.set_ylabel('Distance(m)')
         if use_elevation:
-            plt.title("Water Table depth - meters. Time = 0 hours")
+            title = plt.title("Water Table depth - meters. Time = 0 hours")
         else:
-            plt.title("Water Table depth - meters below ground. Time = 0 hours")
+            title = plt.title("Water Table depth - meters below ground. Time = 0 hours")
         if dem is not None:
             grid = Dem(dem)
             ax.set_xlim(grid.x_coordinates.min(), grid.x_coordinates.max())
