@@ -4,6 +4,7 @@ import gdal, osr
 import numpy as np
 from matplotlib import pyplot as plt
 import os
+import json
 
 
 def extract_elevation(h5_file, out_dir, dem):
@@ -98,4 +99,16 @@ def element_numbers(h5_file, out_dir, dem):
     asc = asc_driver.CreateCopy(os.path.join(out_dir, 'numbers.asc'), ds, 0)
     asc.SetProjection(srs.ExportToWkt())
     asc.FlushCache()
+
+def create_web_map(hdf_path, dem_path, out_path):
+
+    with open(os.path.join(os.path.dirname(__file__),'map.html')) as f:
+        html = f.read().replace("'shetran_results'", json.dumps(Hdf(hdf_path).to_geom(dem_path)))
+    with open(out_path, 'w') as f:
+        f.write(html)
+
+def save_geojson(hdf_path, dem_path, out_path):
+
+    with open (out_path, 'w') as f:
+        f.write(json.dumps(Hdf(hdf_path).to_geom(dem_path)))
 
