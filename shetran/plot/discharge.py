@@ -49,7 +49,10 @@ def hydrograph(sim, obs=None, out_dir=None, start_date=None, time_step=None):
     sim_values = _read_sim(sim)
     if obs is not None:
         obs_values, days = _read_obs(obs)
-        assert len(obs_values) == len(sim_values)
+        assert len(obs_values) >= len(sim_values), 'Observed series must be longer or the same length as simulated'
+        if len(obs_values)>len(sim_values):
+            obs_values = obs_values[:len(sim_values)]
+            days = days[:len(sim_values)]
     else:
         days = []
         for i in range(len(sim_values)):
@@ -143,7 +146,10 @@ def percentiles(sim, obs=None, out_dir=None):
 
     if obs is not None:
         obs_values, days = _read_obs(obs)
-        assert len(sim_values) == len(obs_values), 'Observed and simulated series must be the same length'
+        assert len(obs_values) >= len(sim_values), 'Observed series must be longer or the same length as simulated'
+        if len(obs_values) > len(sim_values):
+            obs_values = obs_values[:len(sim_values)]
+            days = days[:len(sim_values)]
         obs_percentiles = [np.percentile(obs_values, percentile) for percentile in percentiles_list]
 
 
@@ -228,7 +234,10 @@ def water_balance(sim, obs=None, out_dir=None, start_date=None, time_step=None):
     sim_values = _read_sim(sim)
     if obs is not None:
         obs_values, days = _read_obs(obs)
-        assert len(obs_values) == len(sim_values), 'The lengths of the observed and simulated records must be the same'
+        assert len(obs_values) >= len(sim_values), 'Observed series must be longer or the same length as simulated'
+        if len(obs_values) > len(sim_values):
+            obs_values = obs_values[:len(sim_values)]
+            days = days[:len(sim_values)]
     else:
         days = []
         for i in range(len(sim_values)):
