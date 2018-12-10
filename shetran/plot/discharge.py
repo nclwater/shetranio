@@ -112,8 +112,10 @@ def get_nse(sim, obs):
     sim_values = _read_sim(sim)
     obs_values, days = _read_obs(obs)
 
-    if len(sim_values) != len(obs_values):
-        raise Exception('Observed and Simulated records must be the same length')
+    assert len(obs_values) >= len(sim_values), 'Observed series must be longer or the same length as simulated'
+    if len(obs_values) > len(sim_values):
+        obs_values = obs_values[:len(sim_values)]
+        days = days[:len(sim_values)]
 
     diffList = []
     obsDiffList = []
