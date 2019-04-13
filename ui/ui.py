@@ -2,8 +2,9 @@ import sys
 from shetran.hdf import Hdf
 from shetran.dem import Dem
 import argparse
+from pyqtlet import L, MapWidget
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QSizePolicy, QPushButton, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QSizePolicy, QPushButton, QFileDialog, QVBoxLayout, QWidget
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -47,8 +48,8 @@ class App(QMainWindow):
         self.left = 10
         self.top = 10
         self.title = 'SHETran Results Viewer'
-        self.width = 640
-        self.height = 400
+        self.width = 1200
+        self.height = 700
         self.initUI()
 
     def initUI(self):
@@ -56,6 +57,8 @@ class App(QMainWindow):
         self.setGeometry(self.left, self.top, self.width, self.height)
         m = PlotCanvas(self, width=5, height=4)
         m.move(0, 0)
+
+        map = MapCanvas(self)
 
         button = QPushButton('Next Element', self)
         button.setToolTip('show data from the next element')
@@ -99,6 +102,26 @@ class PlotCanvas(FigureCanvas):
         self.line = ax.plot(data, 'r-')
         ax.set_title('Overland Flow')
         self.draw()
+
+class MapCanvas(QWidget):
+    def __init__(self, parent=None):
+        self.mapWidget = MapWidget()
+        QWidget.__init__(self, self.mapWidget)
+        self.setParent(parent)
+        self.setGeometry(500,100,500,500)
+
+        self.layout = QVBoxLayout(self)
+        self.layout.addWidget(self.mapWidget)
+        self.setLayout(self.layout)
+
+        # Working with the maps with pyqtlet
+        self.map = L.map(self.mapWidget)
+        self.map.setView([12.97, 77.59], 10)
+        L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png').addTo(self.map)
+        self.marker = L.marker([12.934056, 77.610029])
+        self.marker.bindPopup('Hello World')
+        self.map.addLayer(self.marker)
+        self.show()
 
 
 if __name__ == '__main__':
