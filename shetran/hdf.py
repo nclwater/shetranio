@@ -40,6 +40,7 @@ class Hdf:
         self.palette1 = self.catchment_maps['palette1']
         self.catchment_spreadsheets = self.file['CATCHMENT_SPREADSHEETS']
         self.sv4_numbering = self.catchment_spreadsheets['SV4_numbering'][:]
+        self.unique_numbers = np.unique(self.sv4_numbering)[1:]
         self.constants = self.file['CONSTANTS']
         self.centroid = Constant(self.constants['centroid'])
         self.grid_dxy = self.constants['grid_dxy']
@@ -181,45 +182,17 @@ class Hdf:
         return d
 
     def to_geom(self, dem, srs=27700):
-        from osgeo import ogr
-        from osgeo import osr
+
         dem = Dem(dem)
-
-        source = osr.SpatialReference()
-        source.ImportFromEPSG(srs)
-
-        target = osr.SpatialReference()
-        target.ImportFromEPSG(4326)
-
-        transform = osr.CoordinateTransformation(source, target)
 
         numbers = self.sv4_numbering[:]
 
-        indices = np.indices(numbers.shape)
         features = []
 
-        cell_size_factor = self.sv4_elevation.shape[0] / self.surface_elevation.square.shape[0]
+        geoms = Geometries(self, dem, srs)
 
-        cell_size = dem.cell_size / cell_size_factor
+        for n in self.unique_numbers:
 
-        for n in np.unique(numbers)[1:]:
-            a = indices[:, numbers == n]
-            y1 = (numbers.shape[0]-a.min(axis=1)[0]) * cell_size + dem.y_lower_left - dem.cell_size
-            x1 = a.min(axis=1)[1] * cell_size + dem.x_lower_left -  dem.cell_size
-            y2 = (numbers.shape[0]-a.max(axis=1)[0]) * cell_size + dem.y_lower_left - dem.cell_size
-            x2 = a.max(axis=1)[1] * cell_size + dem.x_lower_left - dem.cell_size
-
-            point = ogr.CreateGeometryFromWkt("POINT ({} {})".format(x1, y1))
-            point.Transform(transform)
-
-            x1 = point.GetX()
-            y1 = point.GetY()
-
-            point = ogr.CreateGeometryFromWkt("POINT ({} {})".format(x2, y2))
-            point.Transform(transform)
-
-            x2 = point.GetX()
-            y2 = point.GetY()
 
             properties = {}
 
@@ -256,12 +229,9 @@ class Hdf:
 
 
             features.append({
-                'type':'Feature',
-                'geometry':{
-                    'type':'Polygon',
-                    'coordinates':[[[x1, y1], [x1, y2], [x2, y2], [x2, y1], [x1, y1]]]
-                },
-                'properties':properties
+                'type': 'Feature',
+                'geometry': geoms.__next__(),
+                'properties': properties
             })
 
         # unique, inverse = np.unique(numbers, return_inverse=True)
@@ -330,4 +300,64 @@ class Hdf:
             'variables':variables
         }
 
+
+class Geometries:
+    def __init__(self, hdf, dem, srs=27700):
+        from osgeo import osr
+
+        self.hdf = hdf
+        self.dem = dem
+
+        source = osr.SpatialReference()
+        source.ImportFromEPSG(srs)
+
+        target = osr.SpatialReference()
+        target.ImportFromEPSG(4326)
+
+        self.transform = osr.CoordinateTransformation(source, target)
+
+        self.numbers = hdf.sv4_numbering[:]
+
+        self.indices = np.indices(self.numbers.shape)
+
+        cell_size_factor = hdf.sv4_elevation.shape[0] / hdf.surface_elevation.square.shape[0]
+
+        self.cell_size = dem.cell_size / cell_size_factor
+
+        self.n = hdf.unique_numbers
+
+        self.current = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        from osgeo import ogr
+        if self.current > len(self.n) - 1:
+            raise StopIteration
+        else:
+            a = self.indices[:, self.numbers == self.n[self.current]]
+            y1 = (self.numbers.shape[0] - a.min(axis=1)[0]) * self.cell_size + self.dem.y_lower_left - self.dem.cell_size
+            x1 = a.min(axis=1)[1] * self.cell_size + self.dem.x_lower_left - self.dem.cell_size
+            y2 = (self.numbers.shape[0] - a.max(axis=1)[0]) * self.cell_size + self.dem.y_lower_left - self.dem.cell_size
+            x2 = a.max(axis=1)[1] * self.cell_size + self.dem.x_lower_left - self.dem.cell_size
+
+            point = ogr.CreateGeometryFromWkt("POINT ({} {})".format(x1, y1))
+            point.Transform(self.transform)
+
+            x1 = point.GetX()
+            y1 = point.GetY()
+
+            point = ogr.CreateGeometryFromWkt("POINT ({} {})".format(x2, y2))
+            point.Transform(self.transform)
+
+            x2 = point.GetX()
+            y2 = point.GetY()
+
+            self.current += 1
+
+            return {
+                'type': 'Polygon',
+                'coordinates': [[[x1, y1], [x1, y2], [x2, y2], [x2, y1], [x1, y1]]]
+            }
 
