@@ -4,7 +4,7 @@ from shetran.dem import Dem
 import argparse
 from pyqtlet import L, MapWidget
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QComboBox, QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -15,6 +15,26 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-h5')
 parser.add_argument('-dem')
 args = parser.parse_args()
+
+variables = dict(
+        net_rain=dict(name='Net Rainfall'),
+        potential_evapotranspiration=dict(name='Potential Evapotranspiration'),
+        transpiration=dict(name='Transpiration'),
+        surface_evaporation=dict(name='Surface Evaporation'),
+        evaporation_from_interception=dict(name='Evaporation from Interception'),
+        drainage_from_interception=dict(name='Drainage from Interception'),
+        canopy_storage=dict(name='Canopy Storage'),
+        vertical_flows=dict(name='Vertical Flows'),
+        snow_depth=dict(name='Snow Depth'),
+        ph_depth=dict(name='Phreatic Depth'),
+        overland_flow=dict(name='Overland Flow'),
+        surface_depth=dict(name='Surface Depth'),
+        surface_water_potential=dict(name='Surface Water Potential'),
+        theta=dict(name='Theta'),
+        total_sediment_depth=dict(name='Total Sediment Depth'),
+        surface_erosion_rate=dict(name='Surface Erosion Rate'),
+        sediment_discharge_rate=dict(name='Sediment Discharge Rate'),
+        mass_balance_error=dict(name='Mass Balance Error'))
 
 
 class App(QMainWindow):
@@ -35,11 +55,20 @@ class App(QMainWindow):
             else:
                 self.__setattr__(attribute, fileClass(args.__getattribute__(attribute)))
 
+        self.variables = [{'variable': key, **val} for key, val in variables.items() if self.h5.__getattribute__(key) is not None]
+
+        self.variable = self.variables[0]
+
+        self.variableDropDown = QComboBox(self)
+        for variable in self.variables:
+            self.variableDropDown.addItem(variable['name'])
+        self.variableDropDown.activated.connect(self.set_variable)
+        self.variableDropDown.setGeometry(10,10,500, 50)
         self.left = 0
         self.top = 0
         self.title = 'SHETran Results Viewer'
         self.width = 1000
-        self.height = 500
+        self.height = 600
 
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
@@ -50,6 +79,10 @@ class App(QMainWindow):
         self.mapCanvas.clickedElement.connect(self.update_data)
 
         self.show()
+
+    def set_variable(self, variable_index):
+        self.variable = self.variables[variable_index]
+        print(self.variable)
 
     def update_data(self, element):
 
@@ -82,7 +115,7 @@ class PlotCanvas(FigureCanvas):
         FigureCanvas.setSizePolicy(self,
                                    QSizePolicy.Expanding,
                                    QSizePolicy.Expanding)
-        self.setGeometry(10,10,480,480)
+        self.setGeometry(10,110,480,480)
         fig.tight_layout()
 
         data = self.parent().h5.overland_flow.values[self.element, 0, :]
@@ -99,7 +132,7 @@ class MapCanvas(QWidget):
         self.mapWidget = MapWidget()
         QWidget.__init__(self, self.mapWidget)
         self.setParent(parent)
-        self.setGeometry(500,0,500,500)
+        self.setGeometry(500,100,500,500)
 
         self.layout = QVBoxLayout(self)
         self.layout.addWidget(self.mapWidget)
@@ -121,7 +154,7 @@ class MapCanvas(QWidget):
             def __init__(self, latLngs, element_number):
                 super().__init__(latLngs)
                 self.setProperty('name', element_number)
-                self._connectEventToSignal('click', '_signal')
+                self._connectEventToSignal('mouseover', '_signal')
 
         group = L.featureGroup()
         group.addTo(self.map)
