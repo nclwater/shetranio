@@ -40,7 +40,7 @@ class Hdf:
         self.palette1 = self.catchment_maps['palette1']
         self.catchment_spreadsheets = self.file['CATCHMENT_SPREADSHEETS']
         self.sv4_numbering = self.catchment_spreadsheets['SV4_numbering'][:]
-        self.unique_numbers = np.unique(self.sv4_numbering)[1:]
+        self.element_numbers = np.unique(self.sv4_numbering)[1:]
         self.constants = self.file['CONSTANTS']
         self.centroid = Constant(self.constants['centroid'])
         self.grid_dxy = self.constants['grid_dxy']
@@ -324,23 +324,36 @@ class Geometries:
 
         self.cell_size = dem.cell_size / cell_size_factor
 
-        self.n = hdf.unique_numbers
-
         self.current = 0
+
+        self.unique_numbers, self.index = np.unique(self.numbers.flatten(), return_index=True)
+        _, self.reverse_index = np.unique(self.numbers.flatten()[::-1], return_index=True)
+
+        self.y = (self.indices[0] * self.cell_size + dem.y_lower_left - dem.cell_size)[::-1]
+        self.x = self.indices[1] * self.cell_size + dem.x_lower_left - dem.cell_size
+
+        self.ymax = self.y.flatten()[::-1][self.reverse_index]
+        self.ymin = self.y.flatten()[self.index]
+
+        self.xmax = self.x.flatten()[::-1][self.reverse_index]
+        self.xmin = self.x.flatten()[self.index]
+
+
+    def __len__(self):
+        return len(self.unique_numbers)
 
     def __iter__(self):
         return self
 
     def __next__(self):
         from osgeo import ogr
-        if self.current > len(self.n) - 1:
+        if self.current > len(self) - 1:
             raise StopIteration
         else:
-            a = self.indices[:, self.numbers == self.n[self.current]]
-            y1 = (self.numbers.shape[0] - a.min(axis=1)[0]) * self.cell_size + self.dem.y_lower_left - self.dem.cell_size
-            x1 = a.min(axis=1)[1] * self.cell_size + self.dem.x_lower_left - self.dem.cell_size
-            y2 = (self.numbers.shape[0] - a.max(axis=1)[0]) * self.cell_size + self.dem.y_lower_left - self.dem.cell_size
-            x2 = a.max(axis=1)[1] * self.cell_size + self.dem.x_lower_left - self.dem.cell_size
+            y1 = self.ymin[self.current]
+            x1 = self.xmin[self.current]
+            y2 = self.ymax[self.current]
+            x2 = self.xmax[self.current]
 
             point = ogr.CreateGeometryFromWkt("POINT ({} {})".format(x1, y1))
             point.Transform(self.transform)

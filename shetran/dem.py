@@ -9,7 +9,7 @@ class Dem:
         self.number_of_rows = int(lines[1].split()[1])
         self.x_lower_left = float(lines[2].split()[1])
         self.y_lower_left = float(lines[3].split()[1])
-        self.cell_size = int(lines[4].split()[1])
+        self.cell_size = int(float(lines[4].split()[1]))
         self.x_coordinates = np.array([self.x_lower_left - self.cell_size + self.cell_size/2 + i * self.cell_size
                                        for i in range(self.number_of_columns + 2)])
         self.y_coordinates = np.flip(np.array([self.y_lower_left - self.cell_size + self.cell_size/2 + i * self.cell_size
