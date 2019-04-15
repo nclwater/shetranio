@@ -3,9 +3,11 @@ from shetran.hdf import Hdf, Geometries
 from shetran.dem import Dem
 import argparse
 from pyqtlet import L, MapWidget
+import numpy as np
 
-from PyQt5.QtWidgets import QComboBox, QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue
+
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -17,7 +19,6 @@ parser.add_argument('-dem')
 args = parser.parse_args()
 
 variables = dict(
-        net_rain=dict(name='Net Rainfall'),
         potential_evapotranspiration=dict(name='Potential Evapotranspiration'),
         transpiration=dict(name='Transpiration'),
         surface_evaporation=dict(name='Surface Evaporation'),
@@ -44,7 +45,7 @@ class App(QMainWindow):
 
         for attribute, fileClass in [['h5', Hdf], ['dem', Dem]]:
 
-            if not hasattr(args, attribute):
+            if getattr(args, attribute) is None:
                 options = QFileDialog.Options()
 
                 fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
@@ -53,6 +54,7 @@ class App(QMainWindow):
                     self.__setattr__(attribute, fileClass(fileName))
 
             else:
+                print(args)
                 self.__setattr__(attribute, fileClass(args.__getattribute__(attribute)))
 
         self.variables = [{'variable': key, **val} for key, val in variables.items() if self.h5.__getattribute__(key) is not None]
@@ -69,6 +71,11 @@ class App(QMainWindow):
         self.title = 'SHETran Results Viewer'
         self.width = 1000
         self.height = 600
+        self.element = 1
+        self.show()
+        self.progress = QProgressBar(self)
+        self.progress.setGeometry(100,100, 200, 500)
+        self.progress.show()
 
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
@@ -78,28 +85,55 @@ class App(QMainWindow):
 
         self.mapCanvas.clickedElement.connect(self.update_data)
 
-        self.show()
+        self.switch_elements()
+
+        # self.show()
 
     def set_variable(self, variable_index):
         self.variable = self.variables[variable_index]
-        print(self.variable)
+        self.switch_elements()
 
     def update_data(self, element):
+        self.element = element
 
-        idx = self.h5.unique_numbers.tolist().index(element)
+        new_data, times = self.get_values()
 
-        if idx > self.h5.overland_flow.values.shape[0]:
-            return
-
-        self.plotCanvas.element = element
-
-        new_data = self.h5.overland_flow.values[idx, 0, :]
-
-        self.plotCanvas.line[0].set_data(range(len(new_data)), new_data)
+        self.plotCanvas.line[0].set_data(times, new_data)
         self.plotCanvas.axes.relim()
         self.plotCanvas.axes.autoscale_view()
-        self.plotCanvas.axes.set_title('{} Overland Flow'.format(self.plotCanvas.element))
+        self.plotCanvas.axes.set_title('{} {}'.format(self.element, self.variable['name']))
         self.plotCanvas.draw()
+
+    def get_values(self):
+        var = self.variable['variable']
+        idx = self.h5.element_numbers.tolist().index(self.element)
+        values = self.h5.__getattribute__(var).values
+        times = self.h5.__getattribute__(var).times
+        print(values.shape)
+        if var in ['overland_flow', 'surface_depth']:
+            if idx < self.h5.overland_flow.values.shape[0]:
+                if var == 'overland_flow':
+                    return values[idx, :, :].max(axis=0), times
+                else:
+                    return values[idx, :], times
+            else:
+                return []
+        elif var == 'surface_depth':
+            if idx < self.h5.overland_flow.values.shape[0]:
+                return values[idx, 0, :], times
+            else:
+                return [], []
+        else:
+            if self.element in self.h5.number.square:
+                return values[self.h5.number.square == self.element].flatten(), times
+            else:
+                return [], []
+
+    def switch_elements(self):
+        if self.variable['variable'] in ['overland_flow','surface_depth']:
+            self.mapCanvas.show_land()
+        else:
+            self.mapCanvas.show_rivers()
 
 
 class PlotCanvas(FigureCanvas):
@@ -107,7 +141,6 @@ class PlotCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
-        self.element = 0
 
         FigureCanvas.__init__(self, fig)
         self.setParent(parent)
@@ -118,10 +151,10 @@ class PlotCanvas(FigureCanvas):
         self.setGeometry(10,110,480,480)
         fig.tight_layout()
 
-        data = self.parent().h5.overland_flow.values[self.element, 0, :]
+        data, times = self.parent().get_values()
         ax = self.figure.add_subplot(111)
-        self.line = ax.plot(data, 'r-')
-        ax.set_title('{} Overland Flow'.format(self.element))
+        self.line = ax.plot(times, data, 'r-')
+        ax.set_title('{} {}'.format(self.parent().element, self.parent().variable['variable']))
         self.draw()
 
 
@@ -156,12 +189,22 @@ class MapCanvas(QWidget):
                 self.setProperty('name', element_number)
                 self._connectEventToSignal('mouseover', '_signal')
 
-        group = L.featureGroup()
-        group.addTo(self.map)
+        self.group = L.featureGroup()
+        self.group.addTo(self.map)
+        self.elements = []
+        self.show()
 
-        for geom, number in zip(geoms, self.parent().h5.unique_numbers):
+        prog = 0
+        for geom, number in zip(geoms, np.unique(self.parent().h5.sv4_numbering)):
+            if number == 0:
+                continue
             coords = [list(reversed(coord)) for coord in geom['coordinates'][0]]
-            group.addLayer(Element(coords, number))
+            self.elements.append(Element(coords, number))
+            self.group.addLayer(self.elements[-1])
+            prog += 100/len(geoms)
+            self.parent().progress.setValue(prog)
+        self.parent().progress.hide()
+        self.parent().plotCanvas.show()
 
         def pan_to(bounds):
             ne = bounds['_northEast']
@@ -170,10 +213,22 @@ class MapCanvas(QWidget):
             latlng = [sw['lat']+(ne['lat']-sw['lat'])/2, sw['lng']+(ne['lng']-sw['lng'])/2]
             self.map.panTo(latlng)
 
-        group.getJsResponse('{}.getBounds()'.format(group.jsName), pan_to)
+        self.group.getJsResponse('{}.getBounds()'.format(self.group.jsName), pan_to)
 
+    def show_land(self):
+        for element in self.elements:
+            if element.property('name') >= self.parent().h5.overland_flow.values.shape[0]:
+                self.group.removeLayer(element)
+            else:
+                self.group.addLayer(element)
 
-        self.show()
+    def show_rivers(self):
+        for element in self.elements:
+            if element.property('name') < self.parent().h5.overland_flow.values.shape[0]:
+                self.group.removeLayer(element)
+            else:
+                self.group.addLayer(element)
+
 
 
 if __name__ == '__main__':
