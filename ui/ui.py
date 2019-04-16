@@ -39,6 +39,7 @@ variables = dict(
 
 
 class App(QMainWindow):
+    loaded = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -73,21 +74,29 @@ class App(QMainWindow):
         self.height = 600
         self.element = 1
         self.show()
+
+        self.loaded.connect(self.on_load)
+
         self.progress = QProgressBar(self)
         self.progress.setGeometry(100,100, 200, 500)
         self.progress.show()
 
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-        self.plotCanvas = PlotCanvas(self, width=5, height=4)
+        self.plotCanvas = PlotCanvas(*self.get_values(), element=self.element,
+                                     variable=self.variable['variable'],
+                                     parent=self, width=5, height=4)
 
         self.mapCanvas = MapCanvas(self)
 
+        self.mapCanvas.progress.connect(self.set_progress)
         self.mapCanvas.clickedElement.connect(self.update_data)
+        self.mapCanvas.loaded.connect(self.on_load)
+
+        self.mapCanvas.add_data(self.h5, self.dem)
 
         self.switch_elements()
 
-        # self.show()
 
     def set_variable(self, variable_index):
         self.variable = self.variables[variable_index]
@@ -109,7 +118,6 @@ class App(QMainWindow):
         idx = self.h5.element_numbers.tolist().index(self.element)
         values = self.h5.__getattribute__(var).values
         times = self.h5.__getattribute__(var).times
-        print(values.shape)
         if var in ['overland_flow', 'surface_depth']:
             if idx < self.h5.overland_flow.values.shape[0]:
                 if var == 'overland_flow':
@@ -125,20 +133,29 @@ class App(QMainWindow):
                 return [], []
         else:
             if self.element in self.h5.number.square:
-                return values[self.h5.number.square == self.element].flatten(), times
+                index = np.where(self.h5.number.square == self.element)
+                return values[index[0][0], index[1][0]], times
             else:
                 return [], []
 
     def switch_elements(self):
-        if self.variable['variable'] in ['overland_flow','surface_depth']:
-            self.mapCanvas.show_land()
+        if self.variable['variable'] in ['overland_flow', 'surface_depth']:
+            self.mapCanvas.show_land(self.h5)
         else:
-            self.mapCanvas.show_rivers()
+            self.mapCanvas.show_rivers(self.h5)
+
+    def on_load(self):
+        self.progress.hide()
+        self.plotCanvas.show()
+        self.mapCanvas.show()
+
+    def set_progress(self, progress):
+        self.progress.setValue(progress)
 
 
 class PlotCanvas(FigureCanvas):
 
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
+    def __init__(self, data, times, element, variable, parent=None,  width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
 
@@ -151,15 +168,16 @@ class PlotCanvas(FigureCanvas):
         self.setGeometry(10,110,480,480)
         fig.tight_layout()
 
-        data, times = self.parent().get_values()
         ax = self.figure.add_subplot(111)
         self.line = ax.plot(times, data, 'r-')
-        ax.set_title('{} {}'.format(self.parent().element, self.parent().variable['variable']))
+        ax.set_title('{} {}'.format(element, variable))
         self.draw()
 
 
 class MapCanvas(QWidget):
     clickedElement = pyqtSignal(int)
+    loaded = pyqtSignal()
+    progress = pyqtSignal(float)
 
     def __init__(self, parent=None):
         self.mapWidget = MapWidget()
@@ -172,39 +190,39 @@ class MapCanvas(QWidget):
         self.setLayout(self.layout)
 
         self.map = L.map(self.mapWidget)
-        self.map.setView([12.97, 77.59], 10)
+        self.map.setZoom(10)
+
+    def add_data(self, h5, dem):
 
         L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png').addTo(self.map)
 
-        geoms = Geometries(self.parent().h5, self.parent().dem)
+        geoms = Geometries(h5, dem)
+
+        signal = self.clickedElement
 
         class Element(L.polygon):
 
             @pyqtSlot(QJsonValue)
             def _signal(self, event):
-                self.mapWidget.parent().clickedElement.emit(self.property('name'))
+                print(dir(self.mapWidget))
+                signal.emit(self.property('name'))
 
             def __init__(self, latLngs, element_number):
                 super().__init__(latLngs)
                 self.setProperty('name', element_number)
-                self._connectEventToSignal('mouseover', '_signal')
+                self._connectEventToSignal('click', '_signal')
 
         self.group = L.featureGroup()
         self.group.addTo(self.map)
         self.elements = []
-        self.show()
 
         prog = 0
-        for geom, number in zip(geoms, np.unique(self.parent().h5.sv4_numbering)):
-            if number == 0:
-                continue
+        for geom, number in zip(geoms, h5.element_numbers):
             coords = [list(reversed(coord)) for coord in geom['coordinates'][0]]
             self.elements.append(Element(coords, number))
             self.group.addLayer(self.elements[-1])
             prog += 100/len(geoms)
-            self.parent().progress.setValue(prog)
-        self.parent().progress.hide()
-        self.parent().plotCanvas.show()
+            self.progress.emit(prog)
 
         def pan_to(bounds):
             ne = bounds['_northEast']
@@ -212,19 +230,20 @@ class MapCanvas(QWidget):
             sw = bounds['_southWest']
             latlng = [sw['lat']+(ne['lat']-sw['lat'])/2, sw['lng']+(ne['lng']-sw['lng'])/2]
             self.map.panTo(latlng)
+            self.loaded.emit()
 
         self.group.getJsResponse('{}.getBounds()'.format(self.group.jsName), pan_to)
 
-    def show_land(self):
+    def show_land(self, h5):
         for element in self.elements:
-            if element.property('name') >= self.parent().h5.overland_flow.values.shape[0]:
+            if element.property('name') >= h5.overland_flow.values.shape[0]:
                 self.group.removeLayer(element)
             else:
                 self.group.addLayer(element)
 
-    def show_rivers(self):
+    def show_rivers(self, h5):
         for element in self.elements:
-            if element.property('name') < self.parent().h5.overland_flow.values.shape[0]:
+            if element.property('name') < h5.overland_flow.values.shape[0]:
                 self.group.removeLayer(element)
             else:
                 self.group.addLayer(element)

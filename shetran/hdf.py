@@ -28,8 +28,8 @@ class Constant:
 
 class Variable:
     def __init__(self, variable):
-        self.values = variable['value'][:]
-        self.times = variable['time'][:]
+        self.values = variable['value']
+        self.times = variable['time']
 
 class Hdf:
     def __init__(self, path):
@@ -185,13 +185,11 @@ class Hdf:
 
         dem = Dem(dem)
 
-        numbers = self.sv4_numbering[:]
-
         features = []
 
         geoms = Geometries(self, dem, srs)
 
-        for n in self.unique_numbers:
+        for n in self.element_numbers:
 
 
             properties = {}
@@ -222,7 +220,7 @@ class Hdf:
                 }
 
             properties['dem'] = {
-                'value': float(self.sv4_elevation[numbers == n][0])
+                'value': float(self.sv4_elevation[self.sv4_numbering == n][0])
             }
 
             properties['number'] = int(n)
@@ -316,9 +314,9 @@ class Geometries:
 
         self.transform = osr.CoordinateTransformation(source, target)
 
-        self.numbers = hdf.sv4_numbering[:]
+        n = hdf.sv4_numbering
 
-        self.indices = np.indices(self.numbers.shape)
+        self.indices = np.indices(n.shape)
 
         cell_size_factor = hdf.sv4_elevation.shape[0] / hdf.surface_elevation.square.shape[0]
 
@@ -326,21 +324,20 @@ class Geometries:
 
         self.current = 0
 
-        self.unique_numbers, self.index = np.unique(self.numbers.flatten(), return_index=True)
-        _, self.reverse_index = np.unique(self.numbers.flatten()[::-1], return_index=True)
+        _, self.index = np.unique(n.flatten(), return_index=True)
+        _, self.reverse_index = np.unique(n.flatten()[::-1], return_index=True)
 
         self.y = (self.indices[0] * self.cell_size + dem.y_lower_left - dem.cell_size)[::-1]
         self.x = self.indices[1] * self.cell_size + dem.x_lower_left - dem.cell_size
 
-        self.ymax = self.y.flatten()[::-1][self.reverse_index]
-        self.ymin = self.y.flatten()[self.index]
+        self.ymax = self.y.flatten()[::-1][self.reverse_index][1:]
+        self.ymin = self.y.flatten()[self.index][1:]
 
-        self.xmax = self.x.flatten()[::-1][self.reverse_index]
-        self.xmin = self.x.flatten()[self.index]
-
+        self.xmax = self.x.flatten()[::-1][self.reverse_index][1:]
+        self.xmin = self.x.flatten()[self.index][1:]
 
     def __len__(self):
-        return len(self.unique_numbers)
+        return len(self.ymax)
 
     def __iter__(self):
         return self
