@@ -7,7 +7,7 @@ import numpy as np
 import os
 
 from PyQt5.QtWidgets import QRadioButton, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue, QThread
 
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -156,11 +156,21 @@ class App(QMainWindow):
                 return [], []
 
     def set_hover(self):
+        class Thread(QThread):
+            def __init__(self, parent=None):
+                QThread.__init__(self)
+                self.setParent(parent)
 
-        if self.plot_on_click.isChecked():
-            self.mapCanvas.set_onclick()
-        else:
-            self.mapCanvas.set_onhover()
+            def __del__(self):
+                self.wait()
+
+            def run(self):
+                if self.parent().plot_on_click.isChecked():
+                    self.parent().mapCanvas.set_onclick()
+                else:
+                    self.parent().mapCanvas.set_onhover()
+
+        Thread(self).start()
 
     def switch_elements(self):
         if self.variable['variable'] in ['overland_flow', 'surface_depth']:
