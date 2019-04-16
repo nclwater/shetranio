@@ -6,7 +6,7 @@ from pyqtlet import L, MapWidget
 import numpy as np
 import os
 
-from PyQt5.QtWidgets import QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QRadioButton, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue
 
 
@@ -40,7 +40,6 @@ variables = dict(
 
 
 class App(QMainWindow):
-    loaded = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -63,6 +62,17 @@ class App(QMainWindow):
         self.paths = QLabel(self)
         self.paths.setText(os.path.abspath(self.h5.path))
 
+        self.plot_on_click = QRadioButton(self, text='Click')
+        self.plot_on_hover = QRadioButton(self, text='Hover')
+
+        self.plot_on_click.toggle()
+
+        self.plot_on_click.toggled.connect(self.set_hover)
+        self.plot_on_hover.toggled.connect(self.set_hover)
+
+        self.plot_on_click.setGeometry(510, 10, 100, 50)
+        self.plot_on_hover.setGeometry(600, 10, 100, 50)
+
         self.paths.setGeometry(10,60,1000,50)
 
         self.variables = [{'variable': key, **val} for key, val in variables.items() if self.h5.__getattribute__(key) is not None]
@@ -82,7 +92,7 @@ class App(QMainWindow):
         self.element = 1
         self.show()
 
-        self.loaded.connect(self.on_load)
+        # self.loaded.connect(self.on_load)
 
         self.progress = QProgressBar(self)
         self.progress.setGeometry(100,100, 200, 500)
@@ -144,6 +154,13 @@ class App(QMainWindow):
                 return values[index[0][0], index[1][0]], times
             else:
                 return [], []
+
+    def set_hover(self):
+
+        if self.plot_on_click.isChecked():
+            self.mapCanvas.set_onclick()
+        else:
+            self.mapCanvas.set_onhover()
 
     def switch_elements(self):
         if self.variable['variable'] in ['overland_flow', 'surface_depth']:
@@ -211,13 +228,19 @@ class MapCanvas(QWidget):
 
             @pyqtSlot(QJsonValue)
             def _signal(self, event):
-                print(dir(self.mapWidget))
                 signal.emit(self.property('name'))
 
             def __init__(self, latLngs, element_number):
                 super().__init__(latLngs)
                 self.setProperty('name', element_number)
                 self._connectEventToSignal('click', '_signal')
+
+            def onclick(self):
+                self.runJavaScript("{}.off('mouseover')".format(self.jsName))
+                self._connectEventToSignal('click', '_signal')
+            def onhover(self):
+                self.runJavaScript("{}.off('click')".format(self.jsName))
+                self._connectEventToSignal('mouseover', '_signal')
 
         self.group = L.featureGroup()
         self.group.addTo(self.map)
@@ -240,6 +263,14 @@ class MapCanvas(QWidget):
             self.loaded.emit()
 
         self.group.getJsResponse('{}.getBounds()'.format(self.group.jsName), pan_to)
+
+    def set_onclick(self):
+        for element in self.elements:
+            element.onclick()
+
+    def set_onhover(self):
+        for element in self.elements:
+            element.onhover()
 
     def show_land(self, h5):
         for element in self.elements:
