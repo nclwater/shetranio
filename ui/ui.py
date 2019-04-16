@@ -4,8 +4,9 @@ from shetran.dem import Dem
 import argparse
 from pyqtlet import L, MapWidget
 import numpy as np
+import os
 
-from PyQt5.QtWidgets import QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue
 
 
@@ -57,6 +58,12 @@ class App(QMainWindow):
             else:
                 print(args)
                 self.__setattr__(attribute, fileClass(args.__getattribute__(attribute)))
+
+
+        self.paths = QLabel(self)
+        self.paths.setText(os.path.abspath(self.h5.path))
+
+        self.paths.setGeometry(10,60,1000,50)
 
         self.variables = [{'variable': key, **val} for key, val in variables.items() if self.h5.__getattribute__(key) is not None]
 
