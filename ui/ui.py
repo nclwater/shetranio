@@ -6,7 +6,7 @@ from pyqtlet import L, MapWidget
 import numpy as np
 import os
 import json
-from PyQt5.QtWidgets import QRadioButton, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QRadioButton, QHBoxLayout, QVBoxLayout, QGroupBox, QGridLayout, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue, QThread
 
 
@@ -93,32 +93,42 @@ class App(QMainWindow):
                 print(args)
                 self.__setattr__(attribute, fileClass(args.__getattribute__(attribute)))
 
+        row1 = QHBoxLayout()
+        row2 = QHBoxLayout()
+        row3 = QHBoxLayout()
 
-        self.paths = QLabel(self)
-        self.paths.setText(os.path.abspath(self.h5.path))
+        self.mainWidget = QWidget(self)
+        self.mainWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self.mainWidget.setGeometry(0,0,1000,1000)
+        self.paths = QLabel(text=os.path.abspath(self.h5.path))
+        row1.addWidget(self.paths)
 
-        self.plot_on_click = QRadioButton(self, text='Click')
-        self.plot_on_hover = QRadioButton(self, text='Hover')
+        self.plot_on_click = QRadioButton(text='Click')
+        self.plot_on_hover = QRadioButton(text='Hover')
 
         self.plot_on_click.toggle()
 
         self.plot_on_click.toggled.connect(self.set_hover)
         self.plot_on_hover.toggled.connect(self.set_hover)
 
+        self.plot_on_click.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.plot_on_hover.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+
         self.plot_on_click.setGeometry(510, 10, 100, 50)
         self.plot_on_hover.setGeometry(600, 10, 100, 50)
-
-        self.paths.setGeometry(10,60,1000,50)
 
         self.variables = [{'variable': key, **val} for key, val in variables.items() if self.h5.__getattribute__(key) is not None]
 
         self.variable = self.variables[0]
 
-        self.variableDropDown = QComboBox(self)
+        self.variableDropDown = QComboBox()
         for variable in self.variables:
             self.variableDropDown.addItem(variable['name'])
         self.variableDropDown.activated.connect(self.set_variable)
-        self.variableDropDown.setGeometry(10,10,500, 50)
+        # self.variableDropDown.setGeometry(10,10,500, 50)
+        row2.addWidget(self.variableDropDown)
+        row2.addWidget(self.plot_on_click)
+        row2.addWidget(self.plot_on_hover)
         self.left = 0
         self.top = 0
         self.title = 'SHETran Results Viewer'
@@ -128,16 +138,17 @@ class App(QMainWindow):
         self.show()
 
         self.progress = QProgressBar(self)
-        self.progress.setGeometry(100,100, 200, 500)
-        self.progress.show()
+
+        row2.addWidget(self.progress)
 
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.plotCanvas = PlotCanvas(*self.get_values(), element=self.element_number,
-                                     variable=self.variable['variable'],
-                                     parent=self, width=5, height=4)
+                                     variable=self.variable['variable'], width=5, height=4)
+        row3.addWidget(self.plotCanvas)
 
-        self.mapCanvas = MapCanvas(self)
+        self.mapCanvas = MapCanvas()
+        row3.addWidget(self.mapCanvas)
 
         self.mapCanvas.progress.connect(self.set_progress)
         self.mapCanvas.clickedElement.connect(self.update_data)
@@ -146,12 +157,19 @@ class App(QMainWindow):
         self.mapCanvas.add_data(self.h5, self.dem)
 
         self.pan = QPushButton(parent=self, text='Reset View')
-        self.pan.setGeometry(700,10,100,50)
-        self.pan.show()
-
+        row1.addWidget(self.pan)
         self.pan.clicked.connect(self.mapCanvas.pan_to)
 
         self.switch_elements()
+        rows = QVBoxLayout()
+        for row in [row1, row2, row3]:
+            w = QWidget()
+            w.setLayout(row)
+            rows.addWidget(w)
+
+        self.mainWidget.setLayout(rows)
+        self.setCentralWidget(self.mainWidget)
+
 
 
     def set_variable(self, variable_index):
