@@ -5,7 +5,7 @@ import argparse
 from pyqtlet import L, MapWidget
 import numpy as np
 import os
-
+import json
 from PyQt5.QtWidgets import QRadioButton, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue, QThread
 
@@ -37,6 +37,40 @@ variables = dict(
         surface_erosion_rate=dict(name='Surface Erosion Rate'),
         sediment_discharge_rate=dict(name='Sediment Discharge Rate'),
         mass_balance_error=dict(name='Mass Balance Error'))
+
+
+class Group(L.featureGroup):
+    def __init__(self):
+        super().__init__()
+
+    def update_style(self, style):
+        self.runJavaScript("{}.setStyle({})".format(self.jsName, json.dumps(style)))
+
+
+class Element(L.polygon):
+
+    @pyqtSlot(QJsonValue)
+    def _signal(self):
+        self.signal.emit(self)
+
+    def __init__(self, latLngs, element_number, signal):
+        super().__init__(latLngs)
+        self.signal = signal
+        self.number = element_number
+        self.setProperty('element_number', element_number)
+        self._connectEventToSignal('click', '_signal')
+        self.update_style({'stroke': False})
+
+    def onclick(self):
+        self.runJavaScript("{}.off('mouseover')".format(self.jsName))
+        self._connectEventToSignal('click', '_signal')
+
+    def onhover(self):
+        self.runJavaScript("{}.off('click')".format(self.jsName))
+        self._connectEventToSignal('mouseover', '_signal')
+
+    def update_style(self, style):
+        self.runJavaScript("{}.setStyle({})".format(self.jsName, json.dumps(style)))
 
 
 class App(QMainWindow):
@@ -89,7 +123,7 @@ class App(QMainWindow):
         self.title = 'SHETran Results Viewer'
         self.width = 1000
         self.height = 600
-        self.element = 1
+        self.element_number = 1
         self.show()
 
         # self.loaded.connect(self.on_load)
@@ -100,7 +134,7 @@ class App(QMainWindow):
 
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-        self.plotCanvas = PlotCanvas(*self.get_values(), element=self.element,
+        self.plotCanvas = PlotCanvas(*self.get_values(), element=self.element_number,
                                      variable=self.variable['variable'],
                                      parent=self, width=5, height=4)
 
@@ -120,19 +154,19 @@ class App(QMainWindow):
         self.switch_elements()
 
     def update_data(self, element):
-        self.element = element
+        self.element_number = element.number
 
         new_data, times = self.get_values()
 
         self.plotCanvas.line[0].set_data(times, new_data)
         self.plotCanvas.axes.relim()
         self.plotCanvas.axes.autoscale_view()
-        self.plotCanvas.axes.set_title('{} {}'.format(self.element, self.variable['name']))
+        self.plotCanvas.axes.set_title('{} {}'.format(self.element_number, self.variable['name']))
         self.plotCanvas.draw()
 
     def get_values(self):
         var = self.variable['variable']
-        idx = self.h5.element_numbers.tolist().index(self.element)
+        idx = self.h5.element_numbers.tolist().index(self.element_number)
         values = self.h5.__getattribute__(var).values
         times = self.h5.__getattribute__(var).times
         if var in ['overland_flow', 'surface_depth']:
@@ -149,8 +183,8 @@ class App(QMainWindow):
             else:
                 return [], []
         else:
-            if self.element in self.h5.number.square:
-                index = np.where(self.h5.number.square == self.element)
+            if self.element_number in self.h5.number.square:
+                index = np.where(self.h5.number.square == self.element_number)
                 return values[index[0][0], index[1][0]], times
             else:
                 return [], []
@@ -209,7 +243,7 @@ class PlotCanvas(FigureCanvas):
 
 
 class MapCanvas(QWidget):
-    clickedElement = pyqtSignal(int)
+    clickedElement = pyqtSignal(object)
     loaded = pyqtSignal()
     progress = pyqtSignal(float)
 
@@ -226,40 +260,24 @@ class MapCanvas(QWidget):
         self.map = L.map(self.mapWidget)
         self.map.setZoom(10)
 
+        self.group = Group()
+        self.group.addTo(self.map)
+
+        self.clickedElement.connect(self.select_element)
+        self.selected_element = None
+        self.elements = []
+
+
     def add_data(self, h5, dem):
 
         L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png').addTo(self.map)
 
         geoms = Geometries(h5, dem)
 
-        signal = self.clickedElement
-
-        class Element(L.polygon):
-
-            @pyqtSlot(QJsonValue)
-            def _signal(self, event):
-                signal.emit(self.property('name'))
-
-            def __init__(self, latLngs, element_number):
-                super().__init__(latLngs)
-                self.setProperty('name', element_number)
-                self._connectEventToSignal('click', '_signal')
-
-            def onclick(self):
-                self.runJavaScript("{}.off('mouseover')".format(self.jsName))
-                self._connectEventToSignal('click', '_signal')
-            def onhover(self):
-                self.runJavaScript("{}.off('click')".format(self.jsName))
-                self._connectEventToSignal('mouseover', '_signal')
-
-        self.group = L.featureGroup()
-        self.group.addTo(self.map)
-        self.elements = []
-
         prog = 0
         for geom, number in zip(geoms, h5.element_numbers):
             coords = [list(reversed(coord)) for coord in geom['coordinates'][0]]
-            self.elements.append(Element(coords, number))
+            self.elements.append(Element(coords, number, self.clickedElement))
             self.group.addLayer(self.elements[-1])
             prog += 100/len(geoms)
             self.progress.emit(prog)
@@ -282,16 +300,23 @@ class MapCanvas(QWidget):
         for element in self.elements:
             element.onhover()
 
+    def select_element(self, element):
+        if self.selected_element is not None:
+            self.selected_element.update_style({'stroke': False})
+
+        self.selected_element = element
+        element.update_style({'stroke': True})
+
     def show_land(self, h5):
         for element in self.elements:
-            if element.property('name') >= h5.overland_flow.values.shape[0]:
+            if element.number >= h5.overland_flow.values.shape[0]:
                 self.group.removeLayer(element)
             else:
                 self.group.addLayer(element)
 
     def show_rivers(self, h5):
         for element in self.elements:
-            if element.property('name') < h5.overland_flow.values.shape[0]:
+            if element.number < h5.overland_flow.values.shape[0]:
                 self.group.removeLayer(element)
             else:
                 self.group.addLayer(element)
