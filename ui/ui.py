@@ -127,8 +127,6 @@ class App(QMainWindow):
         self.element_number = 1
         self.show()
 
-        # self.loaded.connect(self.on_load)
-
         self.progress = QProgressBar(self)
         self.progress.setGeometry(100,100, 200, 500)
         self.progress.show()
@@ -146,6 +144,12 @@ class App(QMainWindow):
         self.mapCanvas.loaded.connect(self.on_load)
 
         self.mapCanvas.add_data(self.h5, self.dem)
+
+        self.pan = QPushButton(parent=self, text='Reset View')
+        self.pan.setGeometry(700,10,100,50)
+        self.pan.show()
+
+        self.pan.clicked.connect(self.mapCanvas.pan_to)
 
         self.switch_elements()
 
@@ -268,6 +272,14 @@ class MapCanvas(QWidget):
         self.element = None
         self.elements = []
 
+    def pan_to(self):
+
+        def _pan_to(bounds):
+            self.map.fitBounds([list(b.values()) for b in bounds.values()])
+
+        self.group.getJsResponse('{}.getBounds()'.format(self.group.jsName), _pan_to)
+
+
 
     def add_data(self, h5, dem):
 
@@ -283,15 +295,11 @@ class MapCanvas(QWidget):
             prog += 100/len(geoms)
             self.progress.emit(prog)
 
-        def pan_to(bounds):
-            ne = bounds['_northEast']
+        self.pan_to()
 
-            sw = bounds['_southWest']
-            latlng = [sw['lat']+(ne['lat']-sw['lat'])/2, sw['lng']+(ne['lng']-sw['lng'])/2]
-            self.map.panTo(latlng)
-            self.loaded.emit()
+        self.loaded.emit()
 
-        self.group.getJsResponse('{}.getBounds()'.format(self.group.jsName), pan_to)
+
 
     def set_onclick(self):
         self.group.remove_listeners()
