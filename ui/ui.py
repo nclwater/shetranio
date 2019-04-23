@@ -46,27 +46,28 @@ class Group(L.featureGroup):
     def update_style(self, style):
         self.runJavaScript("{}.setStyle({})".format(self.jsName, json.dumps(style)))
 
+    def remove_listeners(self):
+        self.runJavaScript("{}.invoke('off')".format(self.jsName))
+
 
 class Element(L.polygon):
+    default_weight = 0.5
 
     @pyqtSlot(QJsonValue)
     def _signal(self):
         self.signal.emit(self)
 
     def __init__(self, latLngs, element_number, signal):
-        super().__init__(latLngs)
+        super().__init__(latLngs, {'weight': self.default_weight})
         self.signal = signal
         self.number = element_number
         self.setProperty('element_number', element_number)
         self._connectEventToSignal('click', '_signal')
-        self.update_style({'stroke': False})
 
     def onclick(self):
-        self.runJavaScript("{}.off('mouseover')".format(self.jsName))
         self._connectEventToSignal('click', '_signal')
 
     def onhover(self):
-        self.runJavaScript("{}.off('click')".format(self.jsName))
         self._connectEventToSignal('mouseover', '_signal')
 
     def update_style(self, style):
@@ -264,7 +265,7 @@ class MapCanvas(QWidget):
         self.group.addTo(self.map)
 
         self.clickedElement.connect(self.select_element)
-        self.selected_element = None
+        self.element = None
         self.elements = []
 
 
@@ -293,19 +294,21 @@ class MapCanvas(QWidget):
         self.group.getJsResponse('{}.getBounds()'.format(self.group.jsName), pan_to)
 
     def set_onclick(self):
+        self.group.remove_listeners()
         for element in self.elements:
             element.onclick()
 
     def set_onhover(self):
+        self.group.remove_listeners()
         for element in self.elements:
             element.onhover()
 
     def select_element(self, element):
-        if self.selected_element is not None:
-            self.selected_element.update_style({'stroke': False})
+        if self.element is not None:
+            self.element.update_style({'weight': self.element.default_weight})
 
-        self.selected_element = element
-        element.update_style({'stroke': True})
+        self.element = element
+        element.update_style({'weight': 3})
 
     def show_land(self, h5):
         for element in self.elements:
