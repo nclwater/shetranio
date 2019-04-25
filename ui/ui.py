@@ -244,8 +244,11 @@ class PlotCanvas(FigureCanvas):
     def __init__(self, parent=None,  width=5, height=4, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = self.fig.add_subplot(111)
+        self.fig.patch.set_visible(False)
+        self.axes.patch.set_visible(False)
 
         FigureCanvas.__init__(self, self.fig)
+        self.setStyleSheet("background-color:transparent;")
         self.setParent(parent)
 
         FigureCanvas.setSizePolicy(self,
