@@ -196,15 +196,10 @@ class App(QMainWindow):
             if idx < self.h5.overland_flow.values.shape[0]:
                 if var == 'overland_flow':
                     return np.abs(values[idx, :, :]).max(axis=0), times
-                else:
+                elif var == 'surface_depth':
                     return values[idx, :], times
             else:
                 return []
-        elif var == 'surface_depth':
-            if idx < self.h5.overland_flow.values.shape[0]:
-                return values[idx, 0, :], times
-            else:
-                return [], []
         else:
             if self.element_number in self.h5.number.square:
                 index = np.where(self.h5.number.square == self.element_number)
