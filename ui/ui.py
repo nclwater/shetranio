@@ -143,8 +143,7 @@ class App(QMainWindow):
 
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-        self.plotCanvas = PlotCanvas(*self.get_values(), element=self.element_number,
-                                     variable=self.variable['variable'], width=5, height=4)
+        self.plotCanvas = PlotCanvas(width=5, height=4)
         row3.addWidget(self.plotCanvas)
 
         self.mapCanvas = MapCanvas()
