@@ -185,6 +185,7 @@ class App(QMainWindow):
         self.plotCanvas.axes.relim()
         self.plotCanvas.axes.autoscale_view()
         self.plotCanvas.axes.set_title('{} {}'.format(self.element_number, self.variable['name']))
+        self.plotCanvas.fig.tight_layout()
         self.plotCanvas.draw()
 
     def get_values(self):
@@ -246,18 +247,18 @@ class App(QMainWindow):
 
 class PlotCanvas(FigureCanvas):
 
-    def __init__(self, data, times, element, variable, parent=None,  width=5, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
+    def __init__(self, parent=None,  width=5, height=4, dpi=100):
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = self.fig.add_subplot(111)
 
-        FigureCanvas.__init__(self, fig)
+        FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
 
         FigureCanvas.setSizePolicy(self,
                                    QSizePolicy.Expanding,
                                    QSizePolicy.Expanding)
         self.setGeometry(10,110,480,480)
-        fig.tight_layout()
+        self.fig.tight_layout()
 
         ax = self.figure.add_subplot(111)
         self.line = ax.plot(times, data, 'r-')
