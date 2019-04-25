@@ -255,8 +255,7 @@ class PlotCanvas(FigureCanvas):
         self.fig.tight_layout()
 
         ax = self.figure.add_subplot(111)
-        self.line = ax.plot(times, data, 'r-')
-        ax.set_title('{} {}'.format(element, variable))
+        self.line = ax.plot([], [], 'r-')
         self.draw()
 
 
