@@ -232,9 +232,9 @@ class App(QMainWindow):
 
     def switch_elements(self):
         if self.variable['variable'] in ['overland_flow', 'surface_depth']:
-            self.mapCanvas.show_land(self.h5)
-        else:
             self.mapCanvas.show_rivers(self.h5)
+        else:
+            self.mapCanvas.show_land(self.h5)
 
     def on_load(self):
         self.progress.hide()
@@ -339,14 +339,14 @@ class MapCanvas(QWidget):
 
     def show_land(self, h5):
         for element in self.elements:
-            if element.number >= h5.overland_flow.values.shape[0]:
+            if element.number <= h5.overland_flow.values.shape[0]:
                 self.group.removeLayer(element)
             else:
                 self.group.addLayer(element)
 
     def show_rivers(self, h5):
         for element in self.elements:
-            if element.number < h5.overland_flow.values.shape[0]:
+            if element.number > h5.overland_flow.values.shape[0]:
                 self.group.removeLayer(element)
             else:
                 self.group.addLayer(element)
