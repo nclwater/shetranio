@@ -183,7 +183,8 @@ class App(QMainWindow):
         self.plotCanvas.line[0].set_data(times, new_data)
         self.plotCanvas.axes.relim()
         self.plotCanvas.axes.autoscale_view()
-        self.plotCanvas.axes.set_title('{} {}'.format(self.element_number, self.variable['name']))
+        self.plotCanvas.axes.set_title('Element {}'.format(self.element_number))
+        self.plotCanvas.axes.set_ylabel(self.variable['name'])
         self.plotCanvas.fig.tight_layout()
         self.plotCanvas.draw()
 
