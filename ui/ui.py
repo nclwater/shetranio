@@ -196,7 +196,7 @@ class App(QMainWindow):
         if var in ['overland_flow', 'surface_depth']:
             if idx < self.h5.overland_flow.values.shape[0]:
                 if var == 'overland_flow':
-                    return values[idx, :, :].max(axis=0), times
+                    return np.abs(values[idx, :, :]).max(axis=0), times
                 else:
                     return values[idx, :], times
             else:
