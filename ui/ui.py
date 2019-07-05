@@ -6,9 +6,8 @@ from pyqtlet import L, MapWidget
 import numpy as np
 import os
 import json
-from PyQt5.QtWidgets import QRadioButton, QHBoxLayout, QVBoxLayout, QGroupBox, QGridLayout, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QRadioButton, QHBoxLayout, QDesktopWidget, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QPushButton, QFileDialog, QVBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue, QThread
-
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -83,9 +82,10 @@ class App(QMainWindow):
 
             if getattr(args, attribute) is None:
                 options = QFileDialog.Options()
-
-                fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
-                                                          "All Files (*);;Python Files (*.py)", options=options)
+                names = {'h5': 'Select a SHETRAN output file',
+                         'dem': 'Select a DEM for the same catchment'}
+                fileName, _ = QFileDialog.getOpenFileName(self, names[attribute], "",
+                                                          "All Files (*);;HDF5 files (*.h5)", options=options)
                 if fileName:
                     self.__setattr__(attribute, fileClass(fileName))
 
@@ -133,13 +133,14 @@ class App(QMainWindow):
         row2.addWidget(self.download_button)
         row2.addWidget(self.plot_on_click)
         row2.addWidget(self.plot_on_hover)
+
         self.left = 0
         self.top = 0
         self.title = 'SHETran Results Viewer'
         self.width = 1000
         self.height = 600
         self.element_number = 1
-        self.show()
+
 
         self.progress = QProgressBar(self)
 
@@ -173,6 +174,12 @@ class App(QMainWindow):
         self.mainWidget.setLayout(rows)
         self.setCentralWidget(self.mainWidget)
 
+        centerPoint = QDesktopWidget().availableGeometry().center()
+        geom = self.frameGeometry()
+        geom.moveCenter(centerPoint)
+        self.move(geom.topLeft())
+        self.show()
+        self.activateWindow()
 
 
     def set_variable(self, variable_index):
@@ -246,8 +253,9 @@ class App(QMainWindow):
     def download_values(self):
         array = np.array(self.get_values()).transpose()
         dialog = QFileDialog.getSaveFileName(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                                    '{} at {}'.format(self.variable['name'],
-                                                                                      self.element_number)))
+                                                                    '{} at {}.csv'.format(self.variable['name'],
+                                                                                      self.element_number)),
+                                             filter="CSV Files (*.csv)")
         np.savetxt(dialog[0], array, fmt='%.3f',
                    header='{} at {}\ntime,value'.format(self.variable['name'], self.element_number),
                    delimiter=',', comments='')
