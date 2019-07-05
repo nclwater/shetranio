@@ -125,8 +125,12 @@ class App(QMainWindow):
         for variable in self.variables:
             self.variableDropDown.addItem(variable['name'])
         self.variableDropDown.activated.connect(self.set_variable)
-        # self.variableDropDown.setGeometry(10,10,500, 50)
+
+        self.download_button = QPushButton(text='Download')
+        self.download_button.clicked.connect(self.download_values)
+
         row2.addWidget(self.variableDropDown)
+        row2.addWidget(self.download_button)
         row2.addWidget(self.plot_on_click)
         row2.addWidget(self.plot_on_hover)
         self.left = 0
@@ -178,7 +182,7 @@ class App(QMainWindow):
     def update_data(self, element):
         self.element_number = element.number
 
-        new_data, times = self.get_values()
+        times, new_data = self.get_values()
 
         self.plotCanvas.line[0].set_data(times, new_data)
         self.plotCanvas.axes.relim()
@@ -196,15 +200,15 @@ class App(QMainWindow):
         if var in ['overland_flow', 'surface_depth']:
             if idx < self.h5.overland_flow.values.shape[0]:
                 if var == 'overland_flow':
-                    return np.abs(values[idx, :, :]).max(axis=0), times
+                    return times, np.abs(values[idx, :, :]).max(axis=0)
                 elif var == 'surface_depth':
-                    return values[idx, :], times
+                    return times, values[idx, :]
             else:
                 return []
         else:
             if self.element_number in self.h5.number.square:
                 index = np.where(self.h5.number.square == self.element_number)
-                return values[index[0][0], index[1][0]], times
+                return times, values[index[0][0], index[1][0]]
             else:
                 return [], []
 
@@ -238,6 +242,15 @@ class App(QMainWindow):
 
     def set_progress(self, progress):
         self.progress.setValue(progress)
+
+    def download_values(self):
+        array = np.array(self.get_values()).transpose()
+        dialog = QFileDialog.getSaveFileName(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                                    '{} at {}'.format(self.variable['name'],
+                                                                                      self.element_number)))
+        np.savetxt(dialog[0], array, fmt='%.3f',
+                   header='{} at {}\ntime,value'.format(self.variable['name'], self.element_number),
+                   delimiter=',', comments='')
 
 
 class PlotCanvas(FigureCanvas):
