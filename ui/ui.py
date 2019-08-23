@@ -256,9 +256,10 @@ class App(QMainWindow):
                                                                     '{} at {}.csv'.format(self.variable['name'],
                                                                                       self.element_number)),
                                              filter="CSV Files (*.csv)")
-        np.savetxt(dialog[0], array, fmt='%.3f',
-                   header='{} at {}\ntime,value'.format(self.variable['name'], self.element_number),
-                   delimiter=',', comments='')
+        if dialog[0] != '':
+            np.savetxt(dialog[0], array, fmt='%.3f',
+                       header='{} at {}\ntime,value'.format(self.variable['name'], self.element_number),
+                       delimiter=',', comments='')
 
 
 class PlotCanvas(FigureCanvas):
