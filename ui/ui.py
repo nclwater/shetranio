@@ -121,6 +121,7 @@ class App(QMainWindow):
         self.width = 1000
         self.height = 600
         self.element_number = 1
+        self.time = 0
 
 
         self.progress = QProgressBar(self)
@@ -146,6 +147,7 @@ class App(QMainWindow):
         self.pan.clicked.connect(self.mapCanvas.pan_to)
 
         self.switch_elements()
+        self.mapCanvas.set_time(self.time, self.variable)
         rows = QVBoxLayout()
         for row in [row1, row2, row3]:
             w = QWidget()
@@ -327,6 +329,11 @@ class MapCanvas(QWidget):
                 self.group.removeLayer(element)
             else:
                 self.group.addLayer(element)
+
+    def set_time(self, time, variable):
+        for element in self.group.layers:
+            element.setProperty('value', variable.get_value_at_time(element.number, time))
+
 
 
 

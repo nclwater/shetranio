@@ -63,6 +63,9 @@ class OverlandFlow(RiverVariable):
     def get_values(self, element_number):
         return np.abs(self.values[self.hdf.get_element_index(element_number), :, :]).max(axis=0)
 
+    def get_value_at_time(self, element_number, time_index):
+        return np.abs(self.values[self.hdf.get_element_index(element_number), time_index, :]).max(axis=0)
+
 
 class SurfaceDepth(RiverVariable):
     def __init__(self, hdf, variable_name):
@@ -70,6 +73,9 @@ class SurfaceDepth(RiverVariable):
 
     def get_values(self, element_number):
         return self.values[self.hdf.get_element_index(element_number), :]
+
+    def get_value_at_time(self, element_number, time_index):
+        return self.values[self.hdf.get_element_index(element_number), time_index]
 
 
 class LandVariable(Variable):
@@ -80,6 +86,9 @@ class LandVariable(Variable):
         index = np.where(self.hdf.number.square == element_number)
         return self.values[index[0][0], index[1][0]]
 
+    def get_value_at_time(self, element_number, time_index):
+        index = np.where(self.hdf.number.square == element_number)
+        return self.values[index[0][0], index[1][0], time_index]
 
 class RainVariable(Variable):
     def __init__(self, hdf, variable_name):
