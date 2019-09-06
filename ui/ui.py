@@ -162,17 +162,13 @@ class App(QMainWindow):
         self.show()
         self.activateWindow()
 
-
     def set_variable(self, variable_index):
         self.variable = self.variables[variable_index]
         self.switch_elements()
 
     def update_data(self, element):
         self.element_number = element.number
-
-        times, new_data = self.get_values()
-
-        self.plotCanvas.line[0].set_data(times, new_data)
+        self.plotCanvas.line[0].set_data(self.variable.times, self.variable.get_values(self.element_number))
         self.plotCanvas.axes.relim()
         self.plotCanvas.axes.autoscale_view()
         self.plotCanvas.axes.set_title('Element {}'.format(self.element_number))
@@ -180,8 +176,6 @@ class App(QMainWindow):
         self.plotCanvas.fig.tight_layout()
         self.plotCanvas.draw()
 
-    def get_values(self):
-        return self.variable.times, self.variable.get_values(self.element_number)
 
     def set_hover(self):
         class Thread(QThread):
