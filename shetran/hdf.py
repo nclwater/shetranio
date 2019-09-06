@@ -2,6 +2,7 @@ import h5py
 from .dem import Dem
 import numpy as np
 
+
 class Constant:
     def __init__(self, array):
         self.square = array[:, :, 0]
@@ -26,10 +27,64 @@ class Constant:
         else:
             raise Exception('Please specify a direction from [n,e,s,w]')
 
+
 class Variable:
-    def __init__(self, variable):
-        self.values = variable['value']
-        self.times = variable['time']
+    def __new__(cls, hdf, variable_name):
+        if variable_name in hdf.variable_names.keys():
+            return super(Variable, cls).__new__(cls)
+        else:
+            return None
+
+    def __init__(self, hdf, variable_name):
+        self.name = variable_name
+        self.hdf = hdf
+        self.variable = hdf.file_variables[hdf.variable_names[variable_name]]
+        self.values = self.variable['value']
+        self.times = self.variable['time']
+        self.long_name = variable_names[self.name]
+        self.is_river = False
+        self.is_spatial = True
+        try:
+            self.hdf.variables.append(self)
+        except TypeError:
+            pass
+
+
+class RiverVariable(Variable):
+    def __init__(self, hdf, variable_name):
+        super().__init__(hdf, variable_name)
+        self.is_river = True
+
+
+class OverlandFlow(RiverVariable):
+    def __init__(self, hdf, variable_name):
+        super().__init__(hdf, variable_name)
+
+    def get_values(self, element_number):
+        return np.abs(self.values[self.hdf.get_element_index(element_number), :, :]).max(axis=0)
+
+
+class SurfaceDepth(RiverVariable):
+    def __init__(self, hdf, variable_name):
+        super().__init__(hdf, variable_name)
+
+    def get_values(self, element_number):
+        return self.values[self.hdf.get_element_index(element_number), :]
+
+
+class LandVariable(Variable):
+    def __init__(self, hdf, variable_name):
+        super().__init__(hdf, variable_name)
+
+    def get_values(self, element_number):
+        index = np.where(self.hdf.number.square == element_number)
+        return self.values[index[0][0], index[1][0]]
+
+
+class RainVariable(Variable):
+    def __init__(self, hdf, variable_name):
+        super().__init__(hdf, variable_name)
+        self.is_spatial = False
 
 class Hdf:
     def __init__(self, path):
@@ -51,36 +106,30 @@ class Hdf:
         self.surface_elevation = Constant(self.constants['surf_elv'])
         self.vertical_thickness = Constant(self.constants['vert_thk'])
 
-        self.variables = self.file['VARIABLES']
-        self.net_rain = self.lookup_variable('net_rain')
-        self.potential_evapotranspiration = self.lookup_variable('pot_evap')
-        self.transpiration = self.lookup_variable('trnsp')
-        self.surface_evaporation = self.lookup_variable('srf_evap')
-        self.evaporation_from_interception = self.lookup_variable('int_evap')
-        self.drainage_from_interception = self.lookup_variable('drainage')
-        self.canopy_storage = self.lookup_variable('can_stor')
-        self.vertical_flows = self.lookup_variable('v_flow')
-        self.snow_depth = self.lookup_variable('snow_dep')
-        self.ph_depth = self.lookup_variable('ph_depth')
-        self.overland_flow = self.lookup_variable('ovr_flow')
-        self.surface_depth = self.lookup_variable('srf_dep')
-        self.surface_water_potential = self.lookup_variable('psi')
-        self.theta = self.lookup_variable('theta')
-        self.total_sediment_depth = self.lookup_variable('s_t_dp')
-        self.surface_erosion_rate = self.lookup_variable('s_v_er')
-        self.sediment_discharge_rate = self.lookup_variable('s_dis')
-        self.mass_balance_error = self.lookup_variable('bal_err')
+        self.file_variables = self.file['VARIABLES']
+        self.variable_names = dict([(k.split(' ')[-1], k) for k in self.file_variables.keys()])
+        self.variables = []
+        self.net_rain = RainVariable(self, 'net_rain')
+        self.potential_evapotranspiration = LandVariable(self, 'pot_evap')
+        self.transpiration = LandVariable(self, 'trnsp')
+        self.surface_evaporation = LandVariable(self, 'srf_evap')
+        self.evaporation_from_interception = LandVariable(self, 'int_evap')
+        self.drainage_from_interception = LandVariable(self, 'drainage')
+        self.canopy_storage = LandVariable(self, 'can_stor')
+        self.vertical_flows = LandVariable(self, 'v_flow')
+        self.snow_depth = LandVariable(self, 'snow_dep')
+        self.ph_depth = LandVariable(self, 'ph_depth')
+        self.overland_flow = OverlandFlow(self, 'ovr_flow')
+        self.surface_depth = SurfaceDepth(self, 'srf_dep')
+        self.surface_water_potential = LandVariable(self, 'psi')
+        self.theta = LandVariable(self, 'theta')
+        self.total_sediment_depth = LandVariable(self, 's_t_dp')
+        self.surface_erosion_rate = LandVariable(self, 's_v_er')
+        self.sediment_discharge_rate = LandVariable(self, 's_dis')
+        self.mass_balance_error = LandVariable(self, 'bal_err')
+        self.snow_depth = LandVariable(self, 'snow_dep')
+        self.variables = tuple(self.variables)
 
-
-
-        self.snow_depth = self.lookup_variable('snow_dep')
-
-    def lookup_variable(self, var):
-        variables = dict([(k.split(' ')[-1], k) for k in self.variables.keys()])
-        if var in variables.keys():
-            return Variable(self.variables[variables[var]])
-        else:
-            return None
 
     def get_element_number(self, dem_file, location):
         d = Dem(dem_file)
@@ -100,6 +149,8 @@ class Hdf:
 
         return self.number.square[y_index,x_index]
 
+    def get_element_index(self, element_number):
+        return self.element_numbers.tolist().index(element_number)
 
     def get_channel_link_number(self, dem_file, location, direction):
         """Returns north-south and east-west channel link numbers"""
@@ -370,4 +421,25 @@ class Geometries:
                 'type': 'Polygon',
                 'coordinates': [[[x1, y1], [x1, y2], [x2, y2], [x2, y1], [x1, y1]]]
             }
+
+variable_names = {
+    'net_rain': 'Net Rain',
+    'trnsp': 'Transpiration',
+    'pot_evap': 'Potential Evapotranspiration',
+    'srf_evap': 'Surface Evaporation',
+    'int_evap': 'Evaporation from Interception',
+    'drainage': 'Drainage from Interception',
+    'can_stor': 'Canopy Storage',
+    'v_flow': 'Vertical Flows',
+    'snow_dep': 'Snow Depth',
+    'ph_depth': 'Phreatic Depth',
+    'ovr_flow': 'Overland Flow',
+    'srf_dep': 'Surface Depth',
+    'psi': 'Surface Water Potential',
+    'theta': 'Theta',
+    's_t_dp': 'Total Sediment Depth',
+    's_v_er': 'Surface Erosion Rate',
+    's_dis': 'Sediment Discharge Rate',
+    'bal_err': 'Mass Balance Error'
+}
 

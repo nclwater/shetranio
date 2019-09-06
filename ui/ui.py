@@ -18,25 +18,6 @@ parser.add_argument('-h5')
 parser.add_argument('-dem')
 args = parser.parse_args()
 
-variables = dict(
-        potential_evapotranspiration=dict(name='Potential Evapotranspiration'),
-        transpiration=dict(name='Transpiration'),
-        surface_evaporation=dict(name='Surface Evaporation'),
-        evaporation_from_interception=dict(name='Evaporation from Interception'),
-        drainage_from_interception=dict(name='Drainage from Interception'),
-        canopy_storage=dict(name='Canopy Storage'),
-        vertical_flows=dict(name='Vertical Flows'),
-        snow_depth=dict(name='Snow Depth'),
-        ph_depth=dict(name='Phreatic Depth'),
-        overland_flow=dict(name='Overland Flow'),
-        surface_depth=dict(name='Surface Depth'),
-        surface_water_potential=dict(name='Surface Water Potential'),
-        theta=dict(name='Theta'),
-        total_sediment_depth=dict(name='Total Sediment Depth'),
-        surface_erosion_rate=dict(name='Surface Erosion Rate'),
-        sediment_discharge_rate=dict(name='Sediment Discharge Rate'),
-        mass_balance_error=dict(name='Mass Balance Error'))
-
 
 class Group(L.featureGroup):
     def __init__(self):
@@ -117,13 +98,13 @@ class App(QMainWindow):
         self.plot_on_click.setGeometry(510, 10, 100, 50)
         self.plot_on_hover.setGeometry(600, 10, 100, 50)
 
-        self.variables = [{'variable': key, **val} for key, val in variables.items() if self.h5.__getattribute__(key) is not None]
+        self.variables = [var for var in self.h5.variables if var.is_spatial]
 
         self.variable = self.variables[0]
 
         self.variableDropDown = QComboBox()
         for variable in self.variables:
-            self.variableDropDown.addItem(variable['name'])
+            self.variableDropDown.addItem(variable.long_name)
         self.variableDropDown.activated.connect(self.set_variable)
 
         self.download_button = QPushButton(text='Download')
@@ -195,29 +176,12 @@ class App(QMainWindow):
         self.plotCanvas.axes.relim()
         self.plotCanvas.axes.autoscale_view()
         self.plotCanvas.axes.set_title('Element {}'.format(self.element_number))
-        self.plotCanvas.axes.set_ylabel(self.variable['name'])
+        self.plotCanvas.axes.set_ylabel(self.variable.long_name)
         self.plotCanvas.fig.tight_layout()
         self.plotCanvas.draw()
 
     def get_values(self):
-        var = self.variable['variable']
-        idx = self.h5.element_numbers.tolist().index(self.element_number)
-        values = self.h5.__getattribute__(var).values
-        times = self.h5.__getattribute__(var).times
-        if var in ['overland_flow', 'surface_depth']:
-            if idx < self.h5.overland_flow.values.shape[0]:
-                if var == 'overland_flow':
-                    return times, np.abs(values[idx, :, :]).max(axis=0)
-                elif var == 'surface_depth':
-                    return times, values[idx, :]
-            else:
-                return []
-        else:
-            if self.element_number in self.h5.number.square:
-                index = np.where(self.h5.number.square == self.element_number)
-                return times, values[index[0][0], index[1][0]]
-            else:
-                return [], []
+        return self.variable.times, self.variable.get_values(self.element_number)
 
     def set_hover(self):
         class Thread(QThread):
@@ -237,7 +201,7 @@ class App(QMainWindow):
         Thread(self).start()
 
     def switch_elements(self):
-        if self.variable['variable'] in ['overland_flow', 'surface_depth']:
+        if self.variable.is_river:
             self.mapCanvas.show_rivers(self.h5)
         else:
             self.mapCanvas.show_land(self.h5)
@@ -253,12 +217,12 @@ class App(QMainWindow):
     def download_values(self):
         array = np.array(self.get_values()).transpose()
         dialog = QFileDialog.getSaveFileName(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                                    '{} at {}.csv'.format(self.variable['name'],
+                                                                    '{} at {}.csv'.format(self.variable.long_name,
                                                                                       self.element_number)),
                                              filter="CSV Files (*.csv)")
         if dialog[0] != '':
             np.savetxt(dialog[0], array, fmt='%.3f',
-                       header='{} at {}\ntime,value'.format(self.variable['name'], self.element_number),
+                       header='{} at {}\ntime,value'.format(self.variable.long_name, self.element_number),
                        delimiter=',', comments='')
 
 
