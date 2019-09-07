@@ -6,8 +6,8 @@ from pyqtlet import L, MapWidget
 import numpy as np
 import os
 import json
-from PyQt5.QtWidgets import QRadioButton, QHBoxLayout, QDesktopWidget, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QPushButton, QFileDialog, QVBoxLayout, QWidget
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue, QThread
+from PyQt5.QtWidgets import QRadioButton, QHBoxLayout, QDesktopWidget, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QPushButton, QFileDialog, QVBoxLayout, QWidget, QSlider
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue, QThread, Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -77,6 +77,7 @@ class App(QMainWindow):
         row1 = QHBoxLayout()
         row2 = QHBoxLayout()
         row3 = QHBoxLayout()
+        row4 = QHBoxLayout()
 
         self.mainWidget = QWidget(self)
         self.mainWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
@@ -125,16 +126,18 @@ class App(QMainWindow):
 
 
         self.progress = QProgressBar(self)
+        self.slider = QSlider(self, orientation=Qt.Horizontal)
 
         row2.addWidget(self.progress)
+        row3.addWidget(self.slider)
 
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.plotCanvas = PlotCanvas(width=5, height=4)
-        row3.addWidget(self.plotCanvas)
+        row4.addWidget(self.plotCanvas)
 
         self.mapCanvas = MapCanvas()
-        row3.addWidget(self.mapCanvas)
+        row4.addWidget(self.mapCanvas)
 
         self.mapCanvas.progress.connect(self.set_progress)
         self.mapCanvas.clickedElement.connect(self.update_data)
@@ -149,7 +152,7 @@ class App(QMainWindow):
         self.switch_elements()
         self.mapCanvas.set_time(self.time, self.variable)
         rows = QVBoxLayout()
-        for row in [row1, row2, row3]:
+        for row in [row1, row2, row3, row4]:
             w = QWidget()
             w.setLayout(row)
             rows.addWidget(w)
