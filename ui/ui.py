@@ -170,7 +170,7 @@ class App(QMainWindow):
 
     def update_data(self, element):
         self.element_number = element.number
-        self.plotCanvas.line[0].set_data(self.variable.times, self.variable.get_values(self.element_number))
+        self.plotCanvas.line[0].set_data(self.variable.times, self.variable.get_element(self.element_number))
         self.plotCanvas.axes.relim()
         self.plotCanvas.axes.autoscale_view()
         self.plotCanvas.axes.set_title('Element {}'.format(self.element_number))
