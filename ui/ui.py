@@ -11,6 +11,8 @@ from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue, QThread, Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+from matplotlib.colors import Normalize, to_hex
+from matplotlib.cm import get_cmap
 
 
 parser = argparse.ArgumentParser()
@@ -31,14 +33,14 @@ class Group(L.featureGroup):
 
 
 class Element(L.polygon):
-    default_weight = 0.5
+    default_weight = 0.1
 
     @pyqtSlot(QJsonValue)
     def _signal(self):
         self.signal.emit(self)
 
     def __init__(self, latLngs, element_number, signal):
-        super().__init__(latLngs, {'weight': self.default_weight})
+        super().__init__(latLngs, {'weight': self.default_weight, 'fillOpacity': 0.8})
         self.signal = signal
         self.number = element_number
         self.setProperty('element_number', element_number)
@@ -101,7 +103,7 @@ class App(QMainWindow):
 
         self.variables = [var for var in self.h5.variables if var.is_spatial]
 
-        self.variable = self.variables[0]
+        self.variable = None
 
         self.variableDropDown = QComboBox()
         for variable in self.variables:
@@ -126,7 +128,8 @@ class App(QMainWindow):
 
 
         self.progress = QProgressBar(self)
-        self.slider = QSlider(self, orientation=Qt.Horizontal)
+        self.slider = QSlider(parent=self, orientation=Qt.Horizontal)
+        self.slider.valueChanged.connect(self.set_time)
 
         row2.addWidget(self.progress)
         row3.addWidget(self.slider)
@@ -149,8 +152,6 @@ class App(QMainWindow):
         row1.addWidget(self.pan)
         self.pan.clicked.connect(self.mapCanvas.pan_to)
 
-        self.switch_elements()
-        self.mapCanvas.set_time(self.time, self.variable)
         rows = QVBoxLayout()
         for row in [row1, row2, row3, row4]:
             w = QWidget()
@@ -163,12 +164,15 @@ class App(QMainWindow):
         centerPoint = QDesktopWidget().availableGeometry().center()
         geom = self.frameGeometry()
         geom.moveCenter(centerPoint)
+        self.set_variable(0)
+        self.set_time(self.time)
         self.move(geom.topLeft())
         self.show()
         self.activateWindow()
 
     def set_variable(self, variable_index):
         self.variable = self.variables[variable_index]
+        self.slider.setMaximum(len(self.variable.times) - 1)
         self.switch_elements()
 
     def update_data(self, element):
@@ -214,7 +218,7 @@ class App(QMainWindow):
         self.progress.setValue(progress)
 
     def download_values(self):
-        array = np.array(self.get_values()).transpose()
+        array = np.array(self.variable.get_element(self.element_number)).transpose()
         dialog = QFileDialog.getSaveFileName(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                                     '{} at {}.csv'.format(self.variable.long_name,
                                                                                       self.element_number)),
@@ -223,6 +227,10 @@ class App(QMainWindow):
             np.savetxt(dialog[0], array, fmt='%.3f',
                        header='{} at {}\ntime,value'.format(self.variable.long_name, self.element_number),
                        delimiter=',', comments='')
+
+    def set_time(self, time):
+        self.time = time
+        self.mapCanvas.set_time(self.time, self.variable)
 
 
 class PlotCanvas(FigureCanvas):
@@ -331,16 +339,25 @@ class MapCanvas(QWidget):
             self.group.removeLayer(element)
         for element in self.land_elements:
             self.group.addLayer(element)
+        self.visible_elements = self.land_elements
 
     def show_rivers(self):
         for element in self.land_elements:
             self.group.removeLayer(element)
         for element in self.river_elements:
             self.group.addLayer(element)
+        self.visible_elements = self.river_elements
 
     def set_time(self, time, variable):
-        for element in self.group.layers:
-            element.setProperty('value', variable.get_value_at_time(element.number, time))
+        values = variable.get_time(time)
+        print(len(values))
+        print(len(self.visible_elements))
+        cm = get_cmap('RdYlGn')
+        norm = Normalize(vmin=min(values), vmax=max(values))
+        values = cm(norm(values))
+        for element, value in zip(self.visible_elements, values):
+            element.update_style({'fillColor': to_hex(value)})
+            # print(element.number)
 
 
 

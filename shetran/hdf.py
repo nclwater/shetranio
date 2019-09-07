@@ -98,13 +98,25 @@ class LandVariable(Variable):
 
     def get_time(self, time_index):
         numbers = self.hdf.number.square.flatten()
-        values = self.values[:, :, time_index].flatten()[np.argsort(numbers[numbers != -1])]
-        return values[values != -1]
+        values = self.values[:, :, time_index].flatten()
+        return values[values != -1][np.argsort(numbers[numbers != -1])]
+
+
+class Theta(LandVariable):
+    def __init__(self, hdf, variable_name):
+        super().__init__(hdf, variable_name)
+
+    def get_time(self, time_index):
+        numbers = self.hdf.number.square.flatten()
+        values = self.values[:, :, 0, time_index].flatten()
+        return values[values != -1][np.argsort(numbers[numbers != -1])]
+
 
 class RainVariable(Variable):
     def __init__(self, hdf, variable_name):
         super().__init__(hdf, variable_name)
         self.is_spatial = False
+
 
 class Hdf:
     def __init__(self, path):
@@ -144,7 +156,7 @@ class Hdf:
         self.overland_flow = OverlandFlow(self, 'ovr_flow')
         self.surface_depth = SurfaceDepth(self, 'srf_dep')
         self.surface_water_potential = LandVariable(self, 'psi')
-        self.theta = LandVariable(self, 'theta')
+        self.theta = Theta(self, 'theta')
         self.total_sediment_depth = LandVariable(self, 's_t_dp')
         self.surface_erosion_rate = LandVariable(self, 's_v_er')
         self.sediment_discharge_rate = LandVariable(self, 's_dis')
