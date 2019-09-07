@@ -225,6 +225,7 @@ class App(QMainWindow):
     def set_time(self, time):
         self.time = time
         self.mapCanvas.set_time(self.time, self.variable)
+        self.plotCanvas.set_time(self.variable.times[self.time])
 
 
 class PlotCanvas(FigureCanvas):
@@ -245,8 +246,8 @@ class PlotCanvas(FigureCanvas):
         self.setGeometry(10,110,480,480)
         self.fig.tight_layout()
 
-        ax = self.figure.add_subplot(111)
-        self.line = ax.plot([], [], 'r-')
+        self.line = self.axes.plot([], [], 'r-')
+        self.time = self.axes.axvline()
         self.draw()
 
     def update_data(self, element_number, variable):
@@ -257,6 +258,11 @@ class PlotCanvas(FigureCanvas):
         self.axes.set_ylabel(variable.long_name)
         self.fig.tight_layout()
         self.draw()
+
+    def set_time(self, time):
+        self.time.set_xdata([time, time])
+        self.draw()
+
 
 
 class MapCanvas(QWidget):
