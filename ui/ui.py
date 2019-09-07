@@ -177,13 +177,7 @@ class App(QMainWindow):
 
     def update_data(self, element):
         self.element_number = element.number
-        self.plotCanvas.line[0].set_data(self.variable.times, self.variable.get_element(self.element_number))
-        self.plotCanvas.axes.relim()
-        self.plotCanvas.axes.autoscale_view()
-        self.plotCanvas.axes.set_title('Element {}'.format(self.element_number))
-        self.plotCanvas.axes.set_ylabel(self.variable.long_name)
-        self.plotCanvas.fig.tight_layout()
-        self.plotCanvas.draw()
+        self.plotCanvas.update_data(element.number, self.variable)
 
 
     def set_hover(self):
@@ -253,6 +247,15 @@ class PlotCanvas(FigureCanvas):
 
         ax = self.figure.add_subplot(111)
         self.line = ax.plot([], [], 'r-')
+        self.draw()
+
+    def update_data(self, element_number, variable):
+        self.line[0].set_data(variable.times, variable.get_element(element_number))
+        self.axes.relim()
+        self.axes.autoscale_view()
+        self.axes.set_title('Element {}'.format(element_number))
+        self.axes.set_ylabel(variable.long_name)
+        self.fig.tight_layout()
         self.draw()
 
 
@@ -357,7 +360,6 @@ class MapCanvas(QWidget):
         values = cm(norm(values))
         for element, value in zip(self.visible_elements, values):
             element.update_style({'fillColor': to_hex(value)})
-            # print(element.number)
 
 
 
