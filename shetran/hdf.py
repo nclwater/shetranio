@@ -102,7 +102,7 @@ class LandVariable(Variable):
         return values[values != -1][np.argsort(numbers[numbers != -1])]
 
 
-class Theta(LandVariable):
+class SoilMoisture(LandVariable):
     def __init__(self, hdf, variable_name):
         super().__init__(hdf, variable_name)
 
@@ -156,7 +156,7 @@ class Hdf:
         self.overland_flow = OverlandFlow(self, 'ovr_flow')
         self.surface_depth = SurfaceDepth(self, 'srf_dep')
         self.surface_water_potential = LandVariable(self, 'psi')
-        self.theta = Theta(self, 'theta')
+        self.soil_moisture = SoilMoisture(self, 'theta')
         self.total_sediment_depth = LandVariable(self, 's_t_dp')
         self.surface_erosion_rate = LandVariable(self, 's_v_er')
         self.sediment_discharge_rate = LandVariable(self, 's_dis')
@@ -299,9 +299,9 @@ class Hdf:
                 properties['canopy_storage'] = {
                     'values':self.canopy_storage.values[:][self.number.square==n].flatten().tolist()
                 }
-            if self.theta:
+            if self.soil_moisture:
                 properties['theta'] = {
-                    'values': self.theta.values[:,:,0,1:][self.number.square == n].flatten().tolist()
+                    'values': self.soil_moisture.values[:, :, 0, 1:][self.number.square == n].flatten().tolist()
                 }
 
             properties['dem'] = {
@@ -360,16 +360,16 @@ class Hdf:
                     'times': self.surface_depth.times[:].tolist()
                 }
             )
-        if self.theta:
+        if self.soil_moisture:
             variables.append(
                 {
                     'name': 'theta',
                     'longName': 'Soil Moisture (m3/m3)',
-                    'max': (self.theta.values[:,:,0,1:][self.theta.values[:,:,0,1:] != -1].astype(np.float64).max()
-                        if len(self.theta.values[:,:,0,1:][self.theta.values[:,:,0,1:] != -1])>0 else None),
-                    'min': (self.theta.values[:,:,0,1:][self.theta.values[:,:,0,1:] != -1].astype(np.float64).min()
-                        if len(self.theta.values[:, :, 0, 1:][self.theta.values[:, :, 0, 1:] != -1]) > 0 else None),
-                    'times': self.theta.times[1:].tolist()
+                    'max': (self.soil_moisture.values[:, :, 0, 1:][self.soil_moisture.values[:, :, 0, 1:] != -1].astype(np.float64).max()
+                        if len(self.soil_moisture.values[:, :, 0, 1:][self.soil_moisture.values[:, :, 0, 1:] != -1]) > 0 else None),
+                    'min': (self.soil_moisture.values[:, :, 0, 1:][self.soil_moisture.values[:, :, 0, 1:] != -1].astype(np.float64).min()
+                        if len(self.soil_moisture.values[:, :, 0, 1:][self.soil_moisture.values[:, :, 0, 1:] != -1]) > 0 else None),
+                    'times': self.soil_moisture.times[1:].tolist()
                 }
             )
 
@@ -470,7 +470,7 @@ variable_names = {
     'ovr_flow': 'Overland Flow',
     'srf_dep': 'Surface Depth',
     'psi': 'Surface Water Potential',
-    'theta': 'Theta',
+    'theta': 'Soil Moisture',
     's_t_dp': 'Total Sediment Depth',
     's_v_er': 'Surface Erosion Rate',
     's_dis': 'Sediment Discharge Rate',

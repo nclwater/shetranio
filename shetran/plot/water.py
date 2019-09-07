@@ -46,7 +46,7 @@ def balance(h5_file, timeseries_locations, start_date, out_dir=None, dem=None, i
     elevations = h5.surface_elevation.square[1:-1, 1:-1]
 
     # Get the times in hours from the HDF
-    times = h5.theta.times[:]
+    times = h5.soil_moisture.times[:]
 
     # Convert times in hours from run start to real times
     times = np.array([start_date + datetime.timedelta(hours=int(i)) for i in times])
@@ -60,7 +60,7 @@ def balance(h5_file, timeseries_locations, start_date, out_dir=None, dem=None, i
         srf_evap = np.array([round(m, 2) for m in h5.surface_evaporation.values[row[point], col[point], :]])
         int_evap = np.array([round(m, 2) for m in h5.evaporation_from_interception.values[row[point], col[point], :]])
         total_evap = trnsp+srf_evap+int_evap
-        theta = h5.theta.values[row[point], col[point], 0]
+        theta = h5.soil_moisture.values[row[point], col[point], 0]
 
         # Create the plot
         # plt.subplots_adjust(bottom=0.2, right=0.75)

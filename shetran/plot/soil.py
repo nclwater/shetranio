@@ -56,13 +56,13 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
 
         elevation[i] = elevations[int(row_index[i]), int(col_index[i])]
 
-    moisture_times = h5.theta.times
-    number_of_time_steps = h5.theta.times.shape[0]
+    moisture_times = h5.soil_moisture.times
+    number_of_time_steps = h5.soil_moisture.times.shape[0]
     assert 0 <= timestep < number_of_time_steps, 'Timestep must be between 0 and %s' % (int(number_of_time_steps) - 1)
 
     # get the number of layers for which output is defined. This is specified in the visulisation plan file and might not be all the layers
 
-    all_layers = h5.theta.values.shape[2]
+    all_layers = h5.soil_moisture.values.shape[2]
 
     selected_layers = min(all_layers, selected_layers)
 
@@ -72,7 +72,7 @@ def points(h5_file, timeseries_locations, selected_layers, dem=None, out_dir=Non
     data = np.zeros(shape=(all_layers, number_of_time_steps, number_of_points))
 
     for i in range(number_of_points):
-        point_data = h5.theta.values[row_index[i], col_index[i], :, :]
+        point_data = h5.soil_moisture.values[row_index[i], col_index[i], :, :]
         point_data[point_data==-1] = np.nan
         data[:, :, i] = point_data
 
@@ -268,10 +268,10 @@ def times(h5_file, timeseries_locations, selected_number_of_layers, dem=None, ou
 
 
     # get times of output
-    moisture_times = h5.theta.times
+    moisture_times = h5.soil_moisture.times
     number_of_time_steps = moisture_times.shape[0]
 
-    number_of_hdf_layers = h5.theta.values.shape[2]
+    number_of_hdf_layers = h5.soil_moisture.values.shape[2]
 
     # get the number of layers for which output is defined. This is specified in the visulisation plan file and might not be all the layers
     selected_number_of_layers = min(number_of_hdf_layers, selected_number_of_layers)
@@ -281,7 +281,7 @@ def times(h5_file, timeseries_locations, selected_number_of_layers, dem=None, ou
     soil_moisture = np.zeros(shape=(number_of_hdf_layers, number_of_time_steps, number_of_points))
 
     for point_index in range(number_of_points):
-        points_data = h5.theta.values[row[point_index], col[point_index], :, :]
+        points_data = h5.soil_moisture.values[row[point_index], col[point_index], :, :]
         points_data[points_data==-1]=np.nan
         soil_moisture[:, :, point_index] = points_data
 
