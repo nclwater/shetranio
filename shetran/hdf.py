@@ -41,7 +41,8 @@ class Variable:
         self.variable = hdf.file_variables[hdf.variable_names[variable_name]]
         self.values = self.variable['value']
         self.times = self.variable['time']
-        self.long_name = variable_names[self.name]
+        self.units = self.values.attrs['units'][0].decode("utf-8")
+        self.long_name = '{} ({})'.format(variable_names[self.name], self.units)
         self.is_river = False
         self.is_spatial = True
         try:
