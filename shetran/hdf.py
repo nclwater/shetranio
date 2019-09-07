@@ -120,6 +120,8 @@ class Hdf:
         self.centroid = Constant(self.constants['centroid'])
         self.grid_dxy = self.constants['grid_dxy']
         self.number = Constant(self.constants['number'])
+        self.land_elements = np.unique(self.number.square)[1:]
+        self.river_elements = self.element_numbers[:min(self.land_elements) - 1]
         self.r_span = Constant(self.constants['r_span'])
         self.soil_type = Constant(self.constants['soil_typ'])
         self.spatial1 = Constant(self.constants['spatial1'])

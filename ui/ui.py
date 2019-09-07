@@ -201,9 +201,9 @@ class App(QMainWindow):
 
     def switch_elements(self):
         if self.variable.is_river:
-            self.mapCanvas.show_rivers(self.h5)
+            self.mapCanvas.show_rivers()
         else:
-            self.mapCanvas.show_land(self.h5)
+            self.mapCanvas.show_land()
 
     def on_load(self):
         self.progress.hide()
@@ -272,6 +272,8 @@ class MapCanvas(QWidget):
         self.clickedElement.connect(self.select_element)
         self.element = None
         self.elements = []
+        self.river_elements = []
+        self.land_elements = []
 
     def pan_to(self):
 
@@ -291,8 +293,13 @@ class MapCanvas(QWidget):
         prog = 0
         for geom, number in zip(geoms, h5.element_numbers):
             coords = [list(reversed(coord)) for coord in geom['coordinates'][0]]
-            self.elements.append(Element(coords, number, self.clickedElement))
-            self.group.addLayer(self.elements[-1])
+            element = Element(coords, number, self.clickedElement)
+            self.elements.append(element)
+            if number in h5.land_elements:
+                self.land_elements.append(element)
+            else:
+                self.river_elements.append(element)
+            self.group.addLayer(element)
             prog += 100/len(geoms)
             self.progress.emit(prog)
 
@@ -319,19 +326,17 @@ class MapCanvas(QWidget):
         self.element = element
         element.update_style({'weight': 3})
 
-    def show_land(self, h5):
-        for element in self.elements:
-            if element.number <= h5.overland_flow.values.shape[0]:
-                self.group.removeLayer(element)
-            else:
-                self.group.addLayer(element)
+    def show_land(self):
+        for element in self.river_elements:
+            self.group.removeLayer(element)
+        for element in self.land_elements:
+            self.group.addLayer(element)
 
-    def show_rivers(self, h5):
-        for element in self.elements:
-            if element.number > h5.overland_flow.values.shape[0]:
-                self.group.removeLayer(element)
-            else:
-                self.group.addLayer(element)
+    def show_rivers(self):
+        for element in self.land_elements:
+            self.group.removeLayer(element)
+        for element in self.river_elements:
+            self.group.addLayer(element)
 
     def set_time(self, time, variable):
         for element in self.group.layers:
