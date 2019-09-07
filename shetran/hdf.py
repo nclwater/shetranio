@@ -64,9 +64,6 @@ class OverlandFlow(RiverVariable):
     def get_element(self, element_number):
         return np.abs(self.values[self.hdf.get_element_index(element_number), :, :]).max(axis=0)
 
-    def get_value_at_time(self, element_number, time_index):
-        return np.abs(self.values[self.hdf.get_element_index(element_number), time_index, :]).max(axis=0)
-
     def get_time(self, time_index):
         return np.abs(self.values[:, :, time_index]).max(axis=1)
 
@@ -77,9 +74,6 @@ class SurfaceDepth(RiverVariable):
 
     def get_element(self, element_number):
         return self.values[self.hdf.get_element_index(element_number), :]
-
-    def get_value_at_time(self, element_number, time_index):
-        return self.values[self.hdf.get_element_index(element_number), time_index]
 
     def get_time(self, time_index):
         return np.abs(self.values[:, time_index])
@@ -92,10 +86,6 @@ class LandVariable(Variable):
     def get_element(self, element_number):
         index = np.where(self.hdf.number.square == element_number)
         return self.values[index[0][0], index[1][0]]
-
-    def get_value_at_time(self, element_number, time_index):
-        index = np.where(self.hdf.number.square == element_number)
-        return self.values[index[0][0], index[1][0], time_index]
 
     def get_time(self, time_index):
         numbers = self.hdf.number.square.flatten()
