@@ -28,9 +28,6 @@ class Group(L.featureGroup):
     def update_style(self, style):
         self.runJavaScript("{}.setStyle({})".format(self.jsName, json.dumps(style)))
 
-    def remove_listeners(self):
-        self.runJavaScript("{}.invoke('off')".format(self.jsName))
-
 
 class Element(L.polygon):
     default_weight = 0.1
@@ -47,9 +44,11 @@ class Element(L.polygon):
         self._connectEventToSignal('click', '_signal')
 
     def onclick(self):
+        self.runJavaScript("{}.off()".format(self.jsName))
         self._connectEventToSignal('click', '_signal')
 
     def onhover(self):
+        self.runJavaScript("{}.off()".format(self.jsName))
         self._connectEventToSignal('mouseover', '_signal')
 
     def update_style(self, style):
@@ -342,12 +341,10 @@ class MapCanvas(QWidget):
 
 
     def set_onclick(self):
-        self.group.remove_listeners()
         for element in self.elements:
             element.onclick()
 
     def set_onhover(self):
-        self.group.remove_listeners()
         for element in self.elements:
             element.onhover()
 
