@@ -123,7 +123,7 @@ class App(QMainWindow):
         self.title = 'SHETran Results Viewer'
         self.width = 1000
         self.height = 600
-        self.element_number = 1
+        self.element_number = None
         self.time = 0
 
 
@@ -203,6 +203,9 @@ class App(QMainWindow):
         else:
             self.mapCanvas.show_land()
 
+        self.element_number = None
+        self.plotCanvas.clear_data()
+
     def on_load(self):
         self.progress.hide()
         self.plotCanvas.show()
@@ -212,6 +215,8 @@ class App(QMainWindow):
         self.progress.setValue(progress)
 
     def download_values(self):
+        if not self.element_number:
+            return
         array = np.array(self.variable.get_element(self.element_number)).transpose()
         dialog = QFileDialog.getSaveFileName(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                                     '{} at {}.csv'.format(self.variable.long_name,
@@ -261,6 +266,12 @@ class PlotCanvas(FigureCanvas):
 
     def set_time(self, time):
         self.time.set_xdata([time, time])
+        self.draw()
+
+    def clear_data(self):
+        self.line[0].set_data([], [])
+        self.axes.set_title('')
+        self.axes.set_ylabel('')
         self.draw()
 
 
