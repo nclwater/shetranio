@@ -13,6 +13,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.colors import Normalize, to_hex
 from matplotlib.cm import get_cmap
+from matplotlib.pyplot import colorbar
+from matplotlib.cm import ScalarMappable
 
 
 parser = argparse.ArgumentParser()
@@ -54,6 +56,7 @@ class Element(L.polygon):
     def update_style(self, style):
         self.runJavaScript("{}.setStyle({})".format(self.jsName, json.dumps(style)))
 
+colormap = 'RdYlGn'
 
 class App(QMainWindow):
 
@@ -231,7 +234,7 @@ class App(QMainWindow):
     def set_time(self, time):
         self.time = time
         self.mapCanvas.set_time(self.time, self.variable)
-        self.plotCanvas.set_time(self.variable.times[self.time])
+        self.plotCanvas.set_time(self.variable.times[self.time], self.mapCanvas.norm)
 
 
 class PlotCanvas(FigureCanvas):
@@ -239,6 +242,8 @@ class PlotCanvas(FigureCanvas):
     def __init__(self, parent=None,  width=5, height=4, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = self.fig.add_subplot(111)
+        self.sm = ScalarMappable(cmap=colormap, norm=Normalize(vmin=0, vmax=1))
+        self.colorbar = colorbar(self.sm, ax=self.axes, aspect=40, fraction=0.2, pad=0.1)
         self.fig.patch.set_visible(False)
         self.axes.patch.set_visible(False)
 
@@ -266,8 +271,9 @@ class PlotCanvas(FigureCanvas):
         self.fig.tight_layout()
         self.draw()
 
-    def set_time(self, time):
+    def set_time(self, time, norm):
         self.time.set_xdata([time, time])
+        self.sm.set_norm(norm)
         self.draw()
 
     def clear_data(self):
@@ -305,6 +311,7 @@ class MapCanvas(QWidget):
         self.elements = []
         self.river_elements = []
         self.land_elements = []
+        self.norm = None
 
     def pan_to(self):
 
@@ -371,9 +378,12 @@ class MapCanvas(QWidget):
 
     def set_time(self, time, variable):
         values = variable.get_time(time)
-        cm = get_cmap('RdYlGn')
-        norm = Normalize(vmin=min(values), vmax=max(values))
-        values = cm(norm(values))
+        cm = get_cmap(colormap)
+        if np.all(values == 0):
+            self.norm = Normalize(vmin=0, vmax=1)
+        else:
+            self.norm = Normalize(vmin=min(values), vmax=max(values))
+        values = cm(self.norm(values))
         for element, value in zip(self.visible_elements, values):
             element.update_style({'fillColor': to_hex(value)})
 
