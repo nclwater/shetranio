@@ -174,6 +174,7 @@ class App(QMainWindow):
         self.variable = self.variables[variable_index]
         self.slider.setMaximum(len(self.variable.times) - 1)
         self.switch_elements()
+        self.set_time(self.time)
 
     def update_data(self, element):
         self.element_number = element.number
@@ -262,6 +263,7 @@ class PlotCanvas(FigureCanvas):
         self.axes.autoscale_view()
         self.axes.set_title('Element {}'.format(element_number))
         self.axes.set_ylabel(variable.long_name)
+        self.axes.set_xlabel('Time ({})'.format(variable.time_units))
         self.fig.tight_layout()
         self.draw()
 
@@ -273,6 +275,7 @@ class PlotCanvas(FigureCanvas):
         self.line[0].set_data([], [])
         self.axes.set_title('')
         self.axes.set_ylabel('')
+        self.axes.set_xlabel('')
         self.draw()
 
 

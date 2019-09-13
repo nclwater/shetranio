@@ -42,6 +42,7 @@ class Variable:
         self.values = self.variable['value']
         self.times = self.variable['time']
         self.units = self.values.attrs['units'][0].decode("utf-8")
+        self.time_units = self.times.attrs['units'][0].decode("utf-8")
         self.long_name = '{} ({})'.format(variable_names[self.name], self.units)
         self.is_river = False
         self.is_spatial = True
