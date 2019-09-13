@@ -218,10 +218,10 @@ class App(QMainWindow):
         if not self.element_number:
             return
         array = np.array(self.variable.get_element(self.element_number)).transpose()
-        dialog = QFileDialog.getSaveFileName(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                                    '{} at {}.csv'.format(self.variable.long_name,
-                                                                                      self.element_number)),
-                                             filter="CSV Files (*.csv)")
+        directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), '{} at {}.csv'.format(
+            self.variable.long_name, self.element_number).replace('/', ' per '))
+
+        dialog = QFileDialog.getSaveFileName(directory=directory, filter="CSV Files (*.csv)")
         if dialog[0] != '':
             np.savetxt(dialog[0], array, fmt='%.3f',
                        header='{} at {}\ntime,value'.format(self.variable.long_name, self.element_number),
