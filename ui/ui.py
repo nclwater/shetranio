@@ -217,7 +217,8 @@ class App(QMainWindow):
     def download_values(self):
         if not self.element_number:
             return
-        array = np.array(self.variable.get_element(self.element_number)).transpose()
+        array = np.array([self.variable.times[:], self.variable.get_element(self.element_number)]).transpose()
+
         directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), '{} at {}.csv'.format(
             self.variable.long_name, self.element_number).replace('/', ' per '))
 
