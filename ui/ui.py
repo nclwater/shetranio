@@ -6,7 +6,7 @@ from pyqtlet import L, MapWidget
 import numpy as np
 import os
 import json
-from PyQt5.QtWidgets import QRadioButton, QHBoxLayout, QDesktopWidget, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QPushButton, QFileDialog, QVBoxLayout, QWidget, QSlider
+from PyQt5.QtWidgets import QFrame, QSplitter, QRadioButton, QHBoxLayout, QDesktopWidget, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QPushButton, QFileDialog, QVBoxLayout, QWidget, QSlider
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue, QThread, Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -81,7 +81,7 @@ class App(QMainWindow):
         row1 = QHBoxLayout()
         row2 = QHBoxLayout()
         row3 = QHBoxLayout()
-        row4 = QHBoxLayout()
+        row4 = QSplitter()
 
         self.mainWidget = QWidget(self)
         self.mainWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
@@ -155,10 +155,13 @@ class App(QMainWindow):
         self.pan.clicked.connect(self.mapCanvas.pan_to)
 
         rows = QVBoxLayout()
-        for row in [row1, row2, row3, row4]:
+        for row in [row1, row2, row3]:
             w = QWidget()
             w.setLayout(row)
+            w.setMaximumHeight(50)
             rows.addWidget(w)
+
+        rows.addWidget(row4)
 
         self.mainWidget.setLayout(rows)
         self.setCentralWidget(self.mainWidget)
@@ -285,7 +288,7 @@ class PlotCanvas(FigureCanvas):
 
 
 
-class MapCanvas(QWidget):
+class MapCanvas(QFrame):
     clickedElement = pyqtSignal(object)
     loaded = pyqtSignal()
     progress = pyqtSignal(float)
@@ -305,6 +308,8 @@ class MapCanvas(QWidget):
 
         self.group = Group()
         self.group.addTo(self.map)
+        self.setLineWidth(10)
+        self.setFrameShape(QFrame.StyledPanel)
 
         self.clickedElement.connect(self.select_element)
         self.element = None
