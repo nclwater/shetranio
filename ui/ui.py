@@ -370,8 +370,6 @@ class MapCanvas(QWidget):
 
     def set_time(self, time, variable):
         values = variable.get_time(time)
-        print(len(values))
-        print(len(self.visible_elements))
         cm = get_cmap('RdYlGn')
         norm = Normalize(vmin=min(values), vmax=max(values))
         values = cm(norm(values))
