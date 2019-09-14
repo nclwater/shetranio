@@ -8,7 +8,7 @@ import os
 import json
 from PyQt5.QtWidgets import QFrame, QSplitter, QRadioButton, QHBoxLayout, QDesktopWidget, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QPushButton, QFileDialog, QVBoxLayout, QWidget, QSlider
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue, QThread, Qt
-
+import pandas as pd
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.colors import Normalize, to_hex
@@ -237,6 +237,7 @@ class App(QMainWindow):
 class PlotCanvas(FigureCanvas):
 
     def __init__(self, parent=None,  width=5, height=4, dpi=100):
+
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = self.fig.add_subplot(111)
         self.sm = ScalarMappable(cmap=colormap, norm=Normalize(vmin=0, vmax=1))
@@ -244,6 +245,7 @@ class PlotCanvas(FigureCanvas):
         self.colorbar = colorbar(self.sm, ax=self.axes, aspect=40, fraction=0.2, pad=0.1)
         self.fig.patch.set_visible(False)
         self.axes.patch.set_visible(False)
+
 
         FigureCanvas.__init__(self, self.fig)
         self.setStyleSheet("background-color:transparent;")
@@ -255,12 +257,24 @@ class PlotCanvas(FigureCanvas):
         self.setGeometry(10,110,480,480)
         self.fig.tight_layout()
 
-        self.line = self.axes.plot([], [], 'r-')
+        self.line = pd.Series([], index=pd.date_range(start='1/1/2000', periods=0))
+        # self.axes.plot([], [], 'r-')
         self.time = self.axes.axvline()
         self.draw()
 
     def update_data(self, element_number, variable):
-        self.line[0].set_data(variable.times, variable.get_element(element_number))
+        # self.line[0].set_data(variable.times, variable.get_element(element_number))
+        # import matplotlib.dates as mdates
+        #
+        # self.axes.xaxis.set_minor_formatter(mdates.DateFormatter('%h'))
+        # self.axes.xaxis.set_major_formatter(mdates.DateFormatter('%d'))
+        self.axes.clear()
+        # pd.Series([1,2,3], index=pd.date_range(start='1/1/2000', periods=3)).plot(ax=self.axes)
+
+        pd.Series(variable.get_element(element_number), index=pd.date_range(
+            start=variable.times[0], end=variable.times[-1], periods=len(variable.times)).round('1min')).plot(ax=self.axes)
+        # print(variable.times)
+        # self.fig.autofmt_xdate()
         self.axes.relim()
         self.axes.autoscale_view()
         self.axes.set_title('Element {}'.format(element_number))
@@ -270,12 +284,14 @@ class PlotCanvas(FigureCanvas):
         self.draw()
 
     def set_time(self, time, norm):
-        self.time.set_xdata([time, time])
+        print(time)
+        self.time.set_xdata([time.timestamp(), time.timestamp()])
+
         self.sm.set_norm(norm)
         self.draw()
 
     def clear_data(self):
-        self.line[0].set_data([], [])
+        # self.line[0].set_data([], [])
         self.axes.set_title('')
         self.axes.set_ylabel('')
         self.axes.set_xlabel('')

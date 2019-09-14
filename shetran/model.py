@@ -44,7 +44,7 @@ class Model:
         self.srid = self.get('SRID')
 
         self.dem = dem.Dem(self.get_path('DEMMeanFileName'))
-        self.h5 = hdf.Hdf(self.path('output_{}_shegraph.h5'.format(self.catchment_name)))
+        self.h5 = hdf.Hdf(self.path('output_{}_shegraph.h5'.format(self.catchment_name)), start_date=self.start_date)
 
     def get(self, name):
         value = self.tree.find(name)
