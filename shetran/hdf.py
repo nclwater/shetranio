@@ -377,14 +377,24 @@ class Hdf:
 
 
 class Geometries:
-    def __init__(self, hdf, dem, srs=27700):
+    def __init__(self, hdf, dem, srs=None):
         from osgeo import osr
 
         self.hdf = hdf
         self.dem = dem
+        if srs is None:
+            srs = 'EPSG:27700'
+            print('SRID not specified, setting to {}'.format(srs))
 
+        assert ':' in srs, 'SRID must be formatted like EPSG:27700'
+
+        authority, code = srs.split(':')
         source = osr.SpatialReference()
-        source.ImportFromEPSG(srs)
+
+        if authority == 'EPSG':
+            source.ImportFromEPSG(int(code))
+        else:
+            raise Exception('Only EPSG coordinate systems are currently supported')
 
         target = osr.SpatialReference()
         target.ImportFromEPSG(4326)

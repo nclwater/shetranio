@@ -1,6 +1,6 @@
 import sys
-from shetran.hdf import Hdf, Geometries
-from shetran.dem import Dem
+from shetran.hdf import Geometries
+from shetran.model import Model
 import argparse
 from pyqtlet import L, MapWidget
 import numpy as np
@@ -18,8 +18,7 @@ from matplotlib.cm import ScalarMappable
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-h5')
-parser.add_argument('-dem')
+parser.add_argument('-l')
 args = parser.parse_args()
 
 
@@ -63,20 +62,15 @@ class App(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        for attribute, fileClass in [['h5', Hdf], ['dem', Dem]]:
+        library_path = args.l
+        if library_path is None:
+            library_path, _ = QFileDialog.getOpenFileName(self,
+                                                          'Choose a library file',
+                                                          "",
+                                                          "All Files (*);;XML files (*.xml)",
+                                                          options=QFileDialog.Options())
 
-            if getattr(args, attribute) is None:
-                options = QFileDialog.Options()
-                names = {'h5': 'Select a SHETRAN output file',
-                         'dem': 'Select a DEM for the same catchment'}
-                fileName, _ = QFileDialog.getOpenFileName(self, names[attribute], "",
-                                                          "All Files (*);;HDF5 files (*.h5)", options=options)
-                if fileName:
-                    self.__setattr__(attribute, fileClass(fileName))
-
-            else:
-                print(args)
-                self.__setattr__(attribute, fileClass(args.__getattribute__(attribute)))
+        self.model = Model(library_path)
 
         row1 = QHBoxLayout()
         row2 = QHBoxLayout()
@@ -86,7 +80,7 @@ class App(QMainWindow):
         self.mainWidget = QWidget(self)
         self.mainWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self.mainWidget.setGeometry(0,0,1000,1000)
-        self.paths = QLabel(text=os.path.abspath(self.h5.path))
+        self.paths = QLabel(text=os.path.abspath(self.model.h5.path))
         row1.addWidget(self.paths)
 
         self.plot_on_click = QRadioButton(text='Click')
@@ -103,7 +97,7 @@ class App(QMainWindow):
         self.plot_on_click.setGeometry(510, 10, 100, 50)
         self.plot_on_hover.setGeometry(600, 10, 100, 50)
 
-        self.variables = [var for var in self.h5.variables if var.is_spatial]
+        self.variables = [var for var in self.model.h5.variables if var.is_spatial]
 
         self.variable = None
 
@@ -148,7 +142,7 @@ class App(QMainWindow):
         self.mapCanvas.clickedElement.connect(self.update_data)
         self.mapCanvas.loaded.connect(self.on_load)
 
-        self.mapCanvas.add_data(self.h5, self.dem)
+        self.mapCanvas.add_data(self.model)
 
         self.pan = QPushButton(parent=self, text='Reset View')
         row1.addWidget(self.pan)
@@ -246,6 +240,7 @@ class PlotCanvas(FigureCanvas):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = self.fig.add_subplot(111)
         self.sm = ScalarMappable(cmap=colormap, norm=Normalize(vmin=0, vmax=1))
+        self.sm.set_array(np.array([]))
         self.colorbar = colorbar(self.sm, ax=self.axes, aspect=40, fraction=0.2, pad=0.1)
         self.fig.patch.set_visible(False)
         self.axes.patch.set_visible(False)
@@ -327,18 +322,18 @@ class MapCanvas(QFrame):
 
 
 
-    def add_data(self, h5, dem):
+    def add_data(self, model):
 
         L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png').addTo(self.map)
 
-        geoms = Geometries(h5, dem)
+        geoms = Geometries(model.h5, model.dem, srs=model.srid)
 
         prog = 0
-        for geom, number in zip(geoms, h5.element_numbers):
+        for geom, number in zip(geoms, model.h5.element_numbers):
             coords = [list(reversed(coord)) for coord in geom['coordinates'][0]]
             element = Element(coords, number, self.clickedElement)
             self.elements.append(element)
-            if number in h5.land_elements:
+            if number in model.h5.land_elements:
                 self.land_elements.append(element)
             else:
                 self.river_elements.append(element)
