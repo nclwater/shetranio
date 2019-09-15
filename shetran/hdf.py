@@ -102,9 +102,13 @@ class SoilMoisture(LandVariable):
     def __init__(self, hdf, variable_name):
         super().__init__(hdf, variable_name)
 
-    def get_time(self, time_index):
+    def get_element(self, element_number, level=0):
+        index = np.where(self.hdf.number.square == element_number)
+        return self.values[index[0][0], index[1][0], level]
+
+    def get_time(self, time_index, level=0):
         numbers = self.hdf.number.square.flatten()
-        values = self.values[:, :, 0, time_index].flatten()
+        values = self.values[:, :, level, time_index].flatten()
         return values[values != -1][np.argsort(numbers[numbers != -1])]
 
 
