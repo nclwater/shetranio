@@ -164,7 +164,6 @@ class App(QMainWindow):
         geom = self.frameGeometry()
         geom.moveCenter(centerPoint)
         self.set_variable(0)
-        self.set_time(self.time)
         self.move(geom.topLeft())
         self.show()
         self.activateWindow()
@@ -178,7 +177,6 @@ class App(QMainWindow):
     def update_data(self, element):
         self.element_number = element.number
         self.plotCanvas.update_data(element.number, self.variable)
-
 
     def set_hover(self):
         class Thread(QThread):
@@ -200,11 +198,12 @@ class App(QMainWindow):
     def switch_elements(self):
         if self.variable.is_river:
             self.mapCanvas.show_rivers()
+            self.element_number = self.mapCanvas.river_elements[0].number
         else:
             self.mapCanvas.show_land()
+            self.element_number = self.mapCanvas.land_elements[0].number
 
-        self.element_number = None
-        self.plotCanvas.clear_data()
+        self.plotCanvas.update_data(self.element_number, self.variable)
 
     def on_load(self):
         self.progress.hide()
@@ -217,16 +216,17 @@ class App(QMainWindow):
     def download_values(self):
         if not self.element_number:
             return
-        array = np.array([self.variable.times[:], self.variable.get_element(self.element_number)]).transpose()
+        array = pd.DataFrame({'time': self.variable.times[:],
+                          'value': self.variable.get_element(self.element_number).round(3)})
 
         directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), '{} at {}.csv'.format(
             self.variable.long_name, self.element_number).replace('/', ' per '))
 
         dialog = QFileDialog.getSaveFileName(directory=directory, filter="CSV Files (*.csv)")
         if dialog[0] != '':
-            np.savetxt(dialog[0], array, fmt='%.3f',
-                       header='{} at {}\ntime,value'.format(self.variable.long_name, self.element_number),
-                       delimiter=',', comments='')
+            with open(dialog[0], 'w') as f:
+                f.write('{} at {}\n'.format(self.variable.long_name, self.element_number))
+                array.to_csv(f, index=False)
 
     def set_time(self, time):
         self.time = time
@@ -244,7 +244,6 @@ class PlotCanvas(FigureCanvas):
         self.sm.set_array(np.array([]))
         self.colorbar = colorbar(self.sm, ax=self.axes, aspect=40, fraction=0.2, pad=0.1)
         self.fig.patch.set_visible(False)
-        self.axes.patch.set_visible(False)
 
 
         FigureCanvas.__init__(self, self.fig)
@@ -255,26 +254,23 @@ class PlotCanvas(FigureCanvas):
                                    QSizePolicy.Expanding,
                                    QSizePolicy.Expanding)
         self.setGeometry(10,110,480,480)
-        self.fig.tight_layout()
-
-        self.line = pd.Series([], index=pd.date_range(start='1/1/2000', periods=0))
-        # self.axes.plot([], [], 'r-')
-        self.time = self.axes.axvline()
+        self.values = None
+        self.time = None
         self.draw()
 
     def update_data(self, element_number, variable):
-        # self.line[0].set_data(variable.times, variable.get_element(element_number))
-        # import matplotlib.dates as mdates
-        #
-        # self.axes.xaxis.set_minor_formatter(mdates.DateFormatter('%h'))
-        # self.axes.xaxis.set_major_formatter(mdates.DateFormatter('%d'))
-        self.axes.clear()
-        # pd.Series([1,2,3], index=pd.date_range(start='1/1/2000', periods=3)).plot(ax=self.axes)
 
-        pd.Series(variable.get_element(element_number), index=pd.date_range(
-            start=variable.times[0], end=variable.times[-1], periods=len(variable.times)).round('1min')).plot(ax=self.axes)
-        # print(variable.times)
-        # self.fig.autofmt_xdate()
+        if self.values in self.axes.lines:
+            self.axes.lines.remove(self.values)
+
+        pd.Series(variable.get_element(element_number),
+                  index=pd.date_range(start=variable.times[0],
+                                      end=variable.times[-1],
+                                      periods=len(variable.times)).round('1min')).plot(color='C0', ax=self.axes)
+
+        self.values = self.axes.lines[-1]
+        self.set_backgroud()
+
         self.axes.relim()
         self.axes.autoscale_view()
         self.axes.set_title('Element {}'.format(element_number))
@@ -283,20 +279,16 @@ class PlotCanvas(FigureCanvas):
         self.fig.tight_layout()
         self.draw()
 
-    def set_time(self, time, norm):
-        print(time)
-        self.time.set_xdata([time.timestamp(), time.timestamp()])
+    def set_backgroud(self):
+        self.axes.patch.set_visible(False)
 
+    def set_time(self, time, norm):
+        if self.time in self.axes.lines:
+            self.axes.lines.remove(self.time)
+        self.time = self.axes.axvline(pd.Period(time, 'T'), color='black', linewidth=0.8)
+        self.set_backgroud()
         self.sm.set_norm(norm)
         self.draw()
-
-    def clear_data(self):
-        # self.line[0].set_data([], [])
-        self.axes.set_title('')
-        self.axes.set_ylabel('')
-        self.axes.set_xlabel('')
-        self.draw()
-
 
 
 class MapCanvas(QFrame):
@@ -384,6 +376,7 @@ class MapCanvas(QFrame):
         for element in self.land_elements:
             self.group.addLayer(element)
         self.visible_elements = self.land_elements
+        self.select_element(self.land_elements[0])
 
     def show_rivers(self):
         for element in self.land_elements:
@@ -391,6 +384,7 @@ class MapCanvas(QFrame):
         for element in self.river_elements:
             self.group.addLayer(element)
         self.visible_elements = self.river_elements
+        self.select_element(self.river_elements[0])
 
     def set_time(self, time, variable):
         values = variable.get_time(time)
