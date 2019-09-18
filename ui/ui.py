@@ -132,11 +132,21 @@ class App(QMainWindow):
 
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-        self.plotCanvas = PlotCanvas(width=5, height=4)
+        self.plotCanvas = PlotCanvas()
         row4.addWidget(self.plotCanvas)
 
+        map_and_legend_layout = QVBoxLayout()
+
         self.mapCanvas = MapCanvas()
-        row4.addWidget(self.mapCanvas)
+        self.legendCanvas = LegendCanvas()
+        map_and_legend_layout.addWidget(self.mapCanvas)
+        map_and_legend_layout.addWidget(self.legendCanvas)
+
+        map_and_legend = QWidget()
+        map_and_legend.setLayout(map_and_legend_layout)
+
+
+        row4.addWidget(map_and_legend)
 
         self.mapCanvas.progress.connect(self.set_progress)
         self.mapCanvas.clickedElement.connect(self.update_data)
@@ -234,15 +244,40 @@ class App(QMainWindow):
         self.plotCanvas.set_time(self.variable.times[self.time], self.mapCanvas.norm)
 
 
-class PlotCanvas(FigureCanvas):
+class LegendCanvas(FigureCanvas):
+    def __init__(self):
 
-    def __init__(self, parent=None,  width=5, height=4, dpi=100):
-
-        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.fig = Figure(figsize=(6, 1))
+        FigureCanvas.__init__(self, self.fig)
+        self.setFixedHeight(50)
+        # self.setContentsMargins(10,10,10,10)
         self.axes = self.fig.add_subplot(111)
         self.sm = ScalarMappable(cmap=colormap, norm=Normalize(vmin=0, vmax=1))
         self.sm.set_array(np.array([]))
-        self.colorbar = colorbar(self.sm, ax=self.axes, aspect=40, fraction=0.2, pad=0.1)
+        self.colorbar = colorbar(self.sm, cax=self.axes,
+                                 # aspect=5,
+                                 # fraction=0.2,
+                                 pad=1,
+                                 orientation='horizontal')
+
+
+
+        self.fig.tight_layout()
+
+    def set_time(self, norm):
+        self.sm.set_norm(norm)
+        self.draw()
+
+
+class PlotCanvas(FigureCanvas):
+
+    def __init__(self, parent=None):
+
+        self.fig = Figure(figsize=(5,5))
+        self.axes = self.fig.add_subplot(111)
+        self.sm = ScalarMappable(cmap=colormap, norm=Normalize(vmin=0, vmax=1))
+        self.sm.set_array(np.array([]))
+        # self.colorbar = colorbar(self.sm, ax=self.axes, aspect=40, fraction=0.2, pad=0.1)
         self.fig.patch.set_visible(False)
 
 
@@ -253,7 +288,10 @@ class PlotCanvas(FigureCanvas):
         FigureCanvas.setSizePolicy(self,
                                    QSizePolicy.Expanding,
                                    QSizePolicy.Expanding)
-        self.setGeometry(10,110,480,480)
+
+        self.fig.tight_layout()
+        # self.setGeometry(10, 110, 480, 480)
+        self.fig.tight_layout()
         self.values = None
         self.time = None
         self.draw()
@@ -264,19 +302,28 @@ class PlotCanvas(FigureCanvas):
             self.axes.lines.remove(self.values)
 
         pd.Series(variable.get_element(element_number),
-                  index=pd.date_range(start=variable.times[0],
-                                      end=variable.times[-1],
-                                      periods=len(variable.times)).round('1min')).plot(color='C0', ax=self.axes)
+                  index=variable.times).plot(color='C0', ax=self.axes)
+
+        # print(variable.times[::2])
 
         self.values = self.axes.lines[-1]
         self.set_backgroud()
 
         self.axes.relim()
         self.axes.autoscale_view()
+
         self.axes.set_title('Element {}'.format(element_number))
         self.axes.set_ylabel(variable.long_name)
         self.axes.set_xlabel('Time ({})'.format(variable.time_units))
-        self.fig.tight_layout()
+        # ticks = []
+        # for tick, label in zip(self.axes.get_xticks(minor=True), self.axes.get_xticklabels(minor=True)):
+        #     print(str(label))
+        #     print(label.get_text())
+        #     if 'Jan' in str(label):
+        #         ticks.append(tick)
+        # self.axes.set_xticks(ticks)
+
+
         self.draw()
 
     def set_backgroud(self):

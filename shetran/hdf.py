@@ -2,6 +2,7 @@ import h5py
 from .dem import Dem
 import numpy as np
 from datetime import timedelta
+import pandas as pd
 
 
 class Constant:
@@ -43,8 +44,11 @@ class Variable:
         self.values = self.variable['value']
         self.times = self.variable['time']
         self.time_units = self.times.attrs['units'][0].decode("utf-8")
-        if self.hdf.start_date:
-            self.times = np.array([self.hdf.start_date + timedelta(seconds=time * 60) for time in self.times])
+        if self.hdf.model:
+            self.times = pd.date_range(
+                start=self.hdf.model.start_date,
+                freq='{}H'.format(np.floor(self.times[1]) - np.floor(self.times[0])),
+                periods=len(self.times))
             self.time_units = ''
         self.units = self.values.attrs['units'][0].decode("utf-8")
         self.long_name = '{} ({})'.format(variable_names[self.name], self.units)
@@ -119,9 +123,9 @@ class RainVariable(Variable):
 
 
 class Hdf:
-    def __init__(self, path, start_date=None):
+    def __init__(self, path, model=None):
         self.path = path
-        self.start_date = start_date
+        self.model = model
         self.file = h5py.File(path, 'r', driver='core')
         self.catchment_maps = self.file['CATCHMENT_MAPS']
         self.sv4_elevation = self.catchment_maps['SV4_elevation'][:]
