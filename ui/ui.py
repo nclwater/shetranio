@@ -79,7 +79,6 @@ class App(QMainWindow):
 
         self.mainWidget = QWidget(self)
         self.mainWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
-        self.mainWidget.setGeometry(0,0,1000,1000)
         self.paths = QLabel(text=os.path.abspath(self.model.h5.path))
         row1.addWidget(self.paths)
 
@@ -114,24 +113,20 @@ class App(QMainWindow):
         row2.addWidget(self.plot_on_click)
         row2.addWidget(self.plot_on_hover)
 
-        self.left = 0
-        self.top = 0
         self.title = 'SHETran Results Viewer'
-        self.width = 1000
-        self.height = 600
+
         self.element_number = None
         self.time = 0
 
 
         self.progress = QProgressBar(self)
-        self.slider = QSlider(parent=self, orientation=Qt.Horizontal)
+        self.slider = QSlider(parent=self, orientation=Qt.Horizontal, )
         self.slider.valueChanged.connect(self.set_time)
 
         row2.addWidget(self.progress)
         row3.addWidget(self.slider)
 
         self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
         self.plotCanvas = PlotCanvas()
         row4.addWidget(self.plotCanvas)
 
@@ -145,8 +140,19 @@ class App(QMainWindow):
         map_and_legend = QWidget()
         map_and_legend.setLayout(map_and_legend_layout)
 
+        width = 500
+        height = 400
+        self.plotCanvas.setMinimumWidth(width)
+        self.plotCanvas.setMinimumHeight(height)
+        map_and_legend.setMinimumWidth(width)
+        map_and_legend.setMinimumHeight(height)
+        self.mainWidget.setMinimumHeight(600)
+        self.mainWidget.setMinimumWidth(width*2)
+
 
         row4.addWidget(map_and_legend)
+        row4.setCollapsible(0, False)
+        row4.setCollapsible(1, False)
 
         self.mapCanvas.progress.connect(self.set_progress)
         self.mapCanvas.clickedElement.connect(self.update_data)
@@ -169,14 +175,11 @@ class App(QMainWindow):
 
         self.mainWidget.setLayout(rows)
         self.setCentralWidget(self.mainWidget)
-
-        centerPoint = QDesktopWidget().availableGeometry().center()
-        geom = self.frameGeometry()
-        geom.moveCenter(centerPoint)
         self.set_variable(0)
-        self.move(geom.topLeft())
         self.show()
         self.activateWindow()
+
+
 
     def set_variable(self, variable_index):
         self.variable = self.variables[variable_index]
@@ -242,27 +245,26 @@ class App(QMainWindow):
         self.time = time
         self.mapCanvas.set_time(self.time, self.variable)
         self.plotCanvas.set_time(self.variable.times[self.time], self.mapCanvas.norm)
+        self.legendCanvas.set_time(self.mapCanvas.norm)
 
 
 class LegendCanvas(FigureCanvas):
     def __init__(self):
 
-        self.fig = Figure(figsize=(6, 1))
+        self.fig = Figure(figsize=(7, 1))
+        self.fig.subplots_adjust(bottom=0.5)
+
+        self.fig.set_constrained_layout_pads(h_pad=100)
         FigureCanvas.__init__(self, self.fig)
         self.setFixedHeight(50)
-        # self.setContentsMargins(10,10,10,10)
         self.axes = self.fig.add_subplot(111)
         self.sm = ScalarMappable(cmap=colormap, norm=Normalize(vmin=0, vmax=1))
         self.sm.set_array(np.array([]))
         self.colorbar = colorbar(self.sm, cax=self.axes,
-                                 # aspect=5,
-                                 # fraction=0.2,
                                  pad=1,
                                  orientation='horizontal')
-
-
-
-        self.fig.tight_layout()
+        self.fig.patch.set_visible(False)
+        self.setStyleSheet("background-color:transparent;")
 
     def set_time(self, norm):
         self.sm.set_norm(norm)
@@ -273,13 +275,12 @@ class PlotCanvas(FigureCanvas):
 
     def __init__(self, parent=None):
 
-        self.fig = Figure(figsize=(5,5))
+        self.fig = Figure()
         self.axes = self.fig.add_subplot(111)
+        self.fig.subplots_adjust(bottom=0.2, top=0.9)
         self.sm = ScalarMappable(cmap=colormap, norm=Normalize(vmin=0, vmax=1))
         self.sm.set_array(np.array([]))
-        # self.colorbar = colorbar(self.sm, ax=self.axes, aspect=40, fraction=0.2, pad=0.1)
         self.fig.patch.set_visible(False)
-
 
         FigureCanvas.__init__(self, self.fig)
         self.setStyleSheet("background-color:transparent;")
@@ -289,12 +290,8 @@ class PlotCanvas(FigureCanvas):
                                    QSizePolicy.Expanding,
                                    QSizePolicy.Expanding)
 
-        self.fig.tight_layout()
-        # self.setGeometry(10, 110, 480, 480)
-        self.fig.tight_layout()
         self.values = None
         self.time = None
-        self.draw()
 
     def update_data(self, element_number, variable):
 
@@ -304,8 +301,6 @@ class PlotCanvas(FigureCanvas):
         pd.Series(variable.get_element(element_number),
                   index=variable.times).plot(color='C0', ax=self.axes)
 
-        # print(variable.times[::2])
-
         self.values = self.axes.lines[-1]
         self.set_backgroud()
 
@@ -314,16 +309,7 @@ class PlotCanvas(FigureCanvas):
 
         self.axes.set_title('Element {}'.format(element_number))
         self.axes.set_ylabel(variable.long_name)
-        self.axes.set_xlabel('Time ({})'.format(variable.time_units))
-        # ticks = []
-        # for tick, label in zip(self.axes.get_xticks(minor=True), self.axes.get_xticklabels(minor=True)):
-        #     print(str(label))
-        #     print(label.get_text())
-        #     if 'Jan' in str(label):
-        #         ticks.append(tick)
-        # self.axes.set_xticks(ticks)
-
-
+        self.axes.set_xlabel('Time')
         self.draw()
 
     def set_backgroud(self):
@@ -332,7 +318,7 @@ class PlotCanvas(FigureCanvas):
     def set_time(self, time, norm):
         if self.time in self.axes.lines:
             self.axes.lines.remove(self.time)
-        self.time = self.axes.axvline(pd.Period(time, 'T'), color='black', linewidth=0.8)
+        self.time = self.axes.axvline(time, color='black', linewidth=0.8)
         self.set_backgroud()
         self.sm.set_norm(norm)
         self.draw()
@@ -347,7 +333,6 @@ class MapCanvas(QFrame):
         self.mapWidget = MapWidget()
         QWidget.__init__(self, self.mapWidget)
         self.setParent(parent)
-        self.setGeometry(500,100,500,500)
 
         self.layout = QVBoxLayout(self)
         self.layout.addWidget(self.mapWidget)
