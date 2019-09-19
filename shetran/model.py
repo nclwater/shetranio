@@ -25,14 +25,15 @@ class Model:
         self.evaporation_time_step = self.tree.find('EvaporationTimeStep')
         self.max_temp_time_series = self.get_path('MaxTempTimeSeriesData')
         self.min_temp_time_series = self.get_path('MinTempTimeSeriesData')
-        self.start_day = int(self.get('StartDay'))
-        self.start_month = int(self.get('StartMonth'))
-        self.start_year = int(self.get('StartYear'))
+        self.start_day = self.get('StartDay')
+        self.start_month = self.get('StartMonth')
+        self.start_year = self.get('StartYear')
         self.start_date = datetime(self.start_year, self.start_month, self.start_day)
-        self.end_day = int(self.get('EndDay'))
-        self.end_month = int(self.get('EndMonth'))
-        self.end_year = int(self.get('EndYear'))
-        self.end_date = datetime(self.start_year, self.start_month, self.start_day)
+        self.end_day = self.get('EndDay')
+        self.end_month = self.get('EndMonth')
+        self.end_year = self.get('EndYear')
+        self.end_date = datetime(self.end_year, self.end_month, self.end_day) \
+            if self.end_day and self.end_month and self.end_year else None
         self.river_grid_squares_accumulated = self.get('RiverGridSquaresAccumulated')
         self.drop_from_grid_to_channel_depth = self.get('DropFromGridToChannelDepth')
         self.minimum_drop_between_channels = self.get('MinimumDropBetweenChannels')
@@ -49,13 +50,19 @@ class Model:
 
     def get(self, name):
         value = self.tree.find(name)
-        return value.text if value is not None else value
+        if value is None:
+            return
+        elif value.text.isdigit():
+            return int(value.text)
+        else:
+            return value.text
 
     def path(self, name):
-        return os.path.join(os.path.dirname(self.library), name)
+        return os.path.join(os.path.dirname(self.library), str(name)) if name is not None else name
 
     def get_path(self, name):
         return self.path(self.get(name))
+
 
 
 
