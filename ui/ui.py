@@ -6,7 +6,8 @@ from pyqtlet import L, MapWidget
 import numpy as np
 import os
 import json
-from PyQt5.QtWidgets import QFrame, QSplitter, QRadioButton, QHBoxLayout, QDesktopWidget, QLabel, QComboBox, QProgressBar, QApplication, QMainWindow, QSizePolicy, QPushButton, QFileDialog, QVBoxLayout, QWidget, QSlider
+from PyQt5.QtWidgets import QFrame, QSplitter, QRadioButton, QHBoxLayout, QLabel, QComboBox, QProgressBar, \
+    QApplication, QMainWindow, QSizePolicy, QPushButton, QFileDialog, QVBoxLayout, QWidget, QSlider, QScrollArea
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QJsonValue, QThread, Qt
 import pandas as pd
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -37,8 +38,8 @@ class Element(L.polygon):
     def _signal(self):
         self.signal.emit(self)
 
-    def __init__(self, latLngs, element_number, signal):
-        super().__init__(latLngs, {'weight': self.default_weight, 'fillOpacity': 0.8})
+    def __init__(self, shape, element_number, signal):
+        super().__init__(shape, {'weight': self.default_weight, 'fillOpacity': 0.8})
         self.signal = signal
         self.number = element_number
         self.setProperty('element_number', element_number)
@@ -55,22 +56,28 @@ class Element(L.polygon):
     def update_style(self, style):
         self.runJavaScript("{}.setStyle({})".format(self.jsName, json.dumps(style)))
 
+
 colormap = 'RdYlGn'
+
 
 class App(QMainWindow):
 
     def __init__(self):
         super().__init__()
 
-        library_path = args.l
-        if library_path is None:
-            library_path, _ = QFileDialog.getOpenFileName(self,
-                                                          'Choose a library file',
-                                                          "",
-                                                          "All Files (*);;XML files (*.xml)",
-                                                          options=QFileDialog.Options())
+        self.models = []
+        self.args = args
+        self.variables = None
+        self.variable = None
 
-        self.model = Model(library_path)
+        self.modelDropDown = QComboBox()
+        self.modelDropDown.activated.connect(self.set_model)
+
+        self.slider = QSlider(parent=self, orientation=Qt.Horizontal, )
+        self.slider.valueChanged.connect(self.set_time)
+
+        self.add_model()
+        self.model = self.models[0]
 
         row1 = QHBoxLayout()
         row2 = QHBoxLayout()
@@ -79,8 +86,7 @@ class App(QMainWindow):
 
         self.mainWidget = QWidget(self)
         self.mainWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
-        self.paths = QLabel(text=os.path.abspath(self.model.h5.path))
-        row1.addWidget(self.paths)
+        row1.addWidget(self.modelDropDown)
 
         self.plot_on_click = QRadioButton(text='Click')
         self.plot_on_hover = QRadioButton(text='Hover')
@@ -96,19 +102,19 @@ class App(QMainWindow):
         self.plot_on_click.setGeometry(510, 10, 100, 50)
         self.plot_on_hover.setGeometry(600, 10, 100, 50)
 
-        self.variables = [var for var in self.model.h5.variables if var.is_spatial]
-
-        self.variable = None
-
         self.variableDropDown = QComboBox()
-        for variable in self.variables:
+        for variable in self.model.h5.spatial_variables:
             self.variableDropDown.addItem(variable.long_name)
-        self.variableDropDown.activated.connect(self.set_variable)
+        self.variableDropDown.activated.connect(self.set_variables)
 
         self.download_button = QPushButton(text='Download')
         self.download_button.clicked.connect(self.download_values)
 
+        self.add_model_button = QPushButton(text='Add Model')
+        self.add_model_button.clicked.connect(self.add_model)
+
         row2.addWidget(self.variableDropDown)
+        row2.addWidget(self.add_model_button)
         row2.addWidget(self.download_button)
         row2.addWidget(self.plot_on_click)
         row2.addWidget(self.plot_on_hover)
@@ -118,10 +124,7 @@ class App(QMainWindow):
         self.element_number = None
         self.time = 0
 
-
         self.progress = QProgressBar(self)
-        self.slider = QSlider(parent=self, orientation=Qt.Horizontal, )
-        self.slider.valueChanged.connect(self.set_time)
 
         row2.addWidget(self.progress)
         row3.addWidget(self.slider)
@@ -149,7 +152,6 @@ class App(QMainWindow):
         self.mainWidget.setMinimumHeight(600)
         self.mainWidget.setMinimumWidth(width*2)
 
-
         row4.addWidget(map_and_legend)
         row4.setCollapsible(0, False)
         row4.setCollapsible(1, False)
@@ -175,21 +177,37 @@ class App(QMainWindow):
 
         self.mainWidget.setLayout(rows)
         self.setCentralWidget(self.mainWidget)
-        self.set_variable(0)
+        self.set_variables(0)
         self.show()
         self.activateWindow()
 
+    def add_model(self):
+        if self.args.l is None:
+            library_path = QFileDialog.getOpenFileName(
+                self,
+                'Choose a library file',
+                "",
+                "XML files (*.xml);;All Files (*)",
+                options=QFileDialog.Options())[0]
+        else:
+            library_path = self.args.l
+            self.args.l = None
+        model = Model(library_path)
+        self.models.append(model)
+        self.modelDropDown.addItem('{} - {}'.format(len(self.models), model.library))
+        if len(self.models) > 1:
+            self.set_variables(self.variableDropDown.currentIndex())
 
-
-    def set_variable(self, variable_index):
-        self.variable = self.variables[variable_index]
-        self.slider.setMaximum(len(self.variable.times) - 1)
+    def set_variables(self, variable_index):
+        self.variables = [model.h5.spatial_variables[variable_index] for model in self.models]
+        self.variable = self.variables[self.models.index(self.model)]
+        self.slider.setMaximum(len(self.variables[0].times) - 1)
         self.switch_elements()
         self.set_time(self.time)
 
     def update_data(self, element):
         self.element_number = element.number
-        self.plotCanvas.update_data(element.number, self.variable)
+        self.plotCanvas.update_data(element.number, self.variables)
 
     def set_hover(self):
         class Thread(QThread):
@@ -209,14 +227,14 @@ class App(QMainWindow):
         Thread(self).start()
 
     def switch_elements(self):
-        if self.variable.is_river:
+        if self.variables[0].is_river:
             self.mapCanvas.show_rivers()
             self.element_number = self.mapCanvas.river_elements[0].number
         else:
             self.mapCanvas.show_land()
             self.element_number = self.mapCanvas.land_elements[0].number
 
-        self.plotCanvas.update_data(self.element_number, self.variable)
+        self.plotCanvas.update_data(self.element_number, self.variables)
 
     def on_load(self):
         self.progress.hide()
@@ -229,16 +247,17 @@ class App(QMainWindow):
     def download_values(self):
         if not self.element_number:
             return
-        array = pd.DataFrame({'time': self.variable.times[:],
-                          'value': self.variable.get_element(self.element_number).round(3)})
+        array = pd.DataFrame({'time': self.variables[0].times[:],
+                              **{'value_{}'.format(i): var.get_element(self.element_number).round(3) for i, var in
+                                 enumerate(self.variables)}})
 
         directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), '{} at {}.csv'.format(
-            self.variable.long_name, self.element_number).replace('/', ' per '))
+            self.variables[0].long_name, self.element_number).replace('/', ' per '))
 
         dialog = QFileDialog.getSaveFileName(directory=directory, filter="CSV Files (*.csv)")
         if dialog[0] != '':
             with open(dialog[0], 'w') as f:
-                f.write('{} at {}\n'.format(self.variable.long_name, self.element_number))
+                f.write('{} at {}\n'.format(self.variables[0].long_name, self.element_number))
                 array.to_csv(f, index=False)
 
     def set_time(self, time):
@@ -246,6 +265,11 @@ class App(QMainWindow):
         self.mapCanvas.set_time(self.time, self.variable)
         self.plotCanvas.set_time(self.variable.times[self.time], self.mapCanvas.norm)
         self.legendCanvas.set_time(self.mapCanvas.norm)
+
+    def set_model(self, model_index):
+        self.model = self.models[model_index]
+        self.variable = self.variables[model_index]
+        self.set_time(self.time)
 
 
 class LegendCanvas(FigureCanvas):
@@ -290,26 +314,32 @@ class PlotCanvas(FigureCanvas):
                                    QSizePolicy.Expanding,
                                    QSizePolicy.Expanding)
 
-        self.values = None
+        self.lines = []
         self.time = None
 
-    def update_data(self, element_number, variable):
+    def update_data(self, element_number, variables):
 
-        if self.values in self.axes.lines:
-            self.axes.lines.remove(self.values)
+        for line in self.lines:
+            self.axes.lines.remove(line)
+        self.lines = []
 
-        pd.Series(variable.get_element(element_number),
-                  index=variable.times).plot(color='C0', ax=self.axes)
+        for i, var in enumerate(variables):
 
-        self.values = self.axes.lines[-1]
+            pd.Series(var.get_element(element_number),
+                      index=var.times).plot(color='C{}'.format(i), ax=self.axes, label=i+1)
+
+            self.lines.append(self.axes.lines[-1])
+
         self.set_backgroud()
 
         self.axes.relim()
         self.axes.autoscale_view()
 
         self.axes.set_title('Element {}'.format(element_number))
-        self.axes.set_ylabel(variable.long_name)
+        self.axes.set_ylabel(variables[0].long_name)
         self.axes.set_xlabel('Time')
+        if len(variables) > 1:
+            self.axes.legend()
         self.draw()
 
     def set_backgroud(self):
@@ -351,6 +381,7 @@ class MapCanvas(QFrame):
         self.elements = []
         self.river_elements = []
         self.land_elements = []
+        self.visible_elements = None
         self.norm = None
 
     def pan_to(self):
@@ -359,8 +390,6 @@ class MapCanvas(QFrame):
             self.map.fitBounds([list(b.values()) for b in bounds.values()])
 
         self.group.getJsResponse('{}.getBounds()'.format(self.group.jsName), _pan_to)
-
-
 
     def add_data(self, model):
 
@@ -384,8 +413,6 @@ class MapCanvas(QFrame):
         self.pan_to()
 
         self.loaded.emit()
-
-
 
     def set_onclick(self):
         for element in self.elements:
@@ -428,8 +455,6 @@ class MapCanvas(QFrame):
         values = cm(self.norm(values))
         for element, value in zip(self.visible_elements, values):
             element.update_style({'fillColor': to_hex(value)})
-
-
 
 
 if __name__ == '__main__':
