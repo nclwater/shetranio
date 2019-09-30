@@ -248,7 +248,7 @@ class App(QMainWindow):
         if not self.element_number:
             return
         array = pd.DataFrame({'time': self.variables[0].times[:],
-                              **{'value_{}'.format(i): var.get_element(self.element_number).round(3) for i, var in
+                              **{'model_{}'.format(i+1): var.get_element(self.element_number).round(3) for i, var in
                                  enumerate(self.variables)}})
 
         directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), '{} at {}.csv'.format(
@@ -258,7 +258,7 @@ class App(QMainWindow):
         if dialog[0] != '':
             with open(dialog[0], 'w') as f:
                 f.write('{} at {}\n'.format(self.variables[0].long_name, self.element_number))
-                array.to_csv(f, index=False)
+            array.to_csv(dialog[0], index=False, mode='a')
 
     def set_time(self, time):
         self.time = time
