@@ -76,6 +76,8 @@ class App(QMainWindow):
         self.slider = QSlider(parent=self, orientation=Qt.Horizontal, )
         self.slider.valueChanged.connect(self.set_time)
 
+        self.droppedPath = None
+
         self.add_model()
         self.model = self.models[0]
 
@@ -113,8 +115,12 @@ class App(QMainWindow):
         self.add_model_button = QPushButton(text='Add Model')
         self.add_model_button.clicked.connect(self.add_model)
 
+        self.add_series_button = QPushButton(text='Add Series')
+        self.add_series_button.clicked.connect(self.add_series)
+
         row2.addWidget(self.variableDropDown)
         row2.addWidget(self.add_model_button)
+        row2.addWidget(self.add_series_button)
         row2.addWidget(self.download_button)
         row2.addWidget(self.plot_on_click)
         row2.addWidget(self.plot_on_hover)
@@ -130,8 +136,17 @@ class App(QMainWindow):
         row3.addWidget(self.slider)
 
         self.setWindowTitle(self.title)
-        self.plotCanvas = PlotCanvas()
-        row4.addWidget(self.plotCanvas)
+
+        plot_layout = QVBoxLayout()
+        self.plotCanvas = PlotCanvas(self)
+        self.plotZoom = QSlider(orientation=Qt.Horizontal)
+        self.plotZoom.valueChanged.connect(self.plotCanvas.set_zoom)
+        plot_layout.addWidget(self.plotCanvas)
+        plot_layout.addWidget(self.plotZoom)
+
+        plot = QWidget()
+        plot.setLayout(plot_layout)
+        row4.addWidget(plot)
 
         map_and_legend_layout = QVBoxLayout()
 
@@ -145,8 +160,8 @@ class App(QMainWindow):
 
         width = 500
         height = 400
-        self.plotCanvas.setMinimumWidth(width)
-        self.plotCanvas.setMinimumHeight(height)
+        plot.setMinimumWidth(width)
+        plot.setMinimumHeight(height)
         map_and_legend.setMinimumWidth(width)
         map_and_legend.setMinimumHeight(height)
         self.mainWidget.setMinimumHeight(600)
@@ -174,6 +189,7 @@ class App(QMainWindow):
             rows.addWidget(w)
 
         rows.addWidget(row4)
+        self.setAcceptDrops(True)
 
         self.mainWidget.setLayout(rows)
         self.setCentralWidget(self.mainWidget)
@@ -181,14 +197,35 @@ class App(QMainWindow):
         self.show()
         self.activateWindow()
 
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasText():
+            if event.mimeData().text().endswith(('.csv', '.xml')):
+                event.accept()
+                return
+
+        event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            self.droppedPath = url.toLocalFile()
+            break
+
+        if self.droppedPath.endswith('.csv'):
+            self.plotCanvas.update_data(self.element_number, self.variables, self.droppedPath)
+        elif self.droppedPath.endswith('.xml'):
+            self.add_model()
+
     def add_model(self):
-        if self.args.l is None:
+        if self.args.l is None and self.droppedPath is None:
             library_path = QFileDialog.getOpenFileName(
                 self,
                 'Choose a library file',
                 "",
                 "XML files (*.xml);;All Files (*)",
                 options=QFileDialog.Options())[0]
+        elif self.droppedPath:
+            library_path = os.path.splitdrive(self.droppedPath)[1]
+            self.droppedPath = None
         else:
             library_path = self.args.l
             self.args.l = None
@@ -197,6 +234,20 @@ class App(QMainWindow):
         self.modelDropDown.addItem('{} - {}'.format(len(self.models), model.library))
         if len(self.models) > 1:
             self.set_variables(self.variableDropDown.currentIndex())
+
+    def add_series(self):
+        series_path = QFileDialog.getOpenFileName(
+            self,
+            'Choose a CSV file',
+            "",
+            "CSV files (*.csv);;All Files (*)",
+            options=QFileDialog.Options())[0]
+
+        if series_path == '':
+            return
+
+        self.plotCanvas.update_data(self.element_number, self.variables, series_path)
+
 
     def set_variables(self, variable_index):
         self.variables = [model.h5.spatial_variables[variable_index] for model in self.models]
@@ -305,6 +356,7 @@ class PlotCanvas(FigureCanvas):
         self.sm = ScalarMappable(cmap=colormap, norm=Normalize(vmin=0, vmax=1))
         self.sm.set_array(np.array([]))
         self.fig.patch.set_visible(False)
+        self.legend = None
 
         FigureCanvas.__init__(self, self.fig)
         self.setStyleSheet("background-color:transparent;")
@@ -316,8 +368,10 @@ class PlotCanvas(FigureCanvas):
 
         self.lines = []
         self.time = None
+        self.zoom_level = 0
+        self.setAcceptDrops(True)
 
-    def update_data(self, element_number, variables):
+    def update_data(self, element_number, variables, series_path=None):
 
         for line in self.lines:
             self.axes.lines.remove(line)
@@ -330,6 +384,19 @@ class PlotCanvas(FigureCanvas):
 
             self.lines.append(self.axes.lines[-1])
 
+        if series_path is not None:
+            try:
+                series = pd.read_csv(series_path, usecols=[0, 1], index_col=0, squeeze=True)
+                series.index = pd.DatetimeIndex(pd.to_datetime(series.index))
+
+                start = max(min(variables[0].times), min(series.index))
+                end = min(max(variables[0].times), max(series.index))
+                series = series.sort_index().loc[start:end]
+                series.plot(ax=self.axes,label='Series', color='C{}'.format(len(variables)))
+                self.lines.append(self.axes.lines[-1])
+            except:
+                pass
+
         self.set_backgroud()
 
         self.axes.relim()
@@ -338,9 +405,11 @@ class PlotCanvas(FigureCanvas):
         self.axes.set_title('Element {}'.format(element_number))
         self.axes.set_ylabel(variables[0].long_name)
         self.axes.set_xlabel('Time')
-        if len(variables) > 1:
-            self.axes.legend()
-        self.draw()
+        if len(self.lines) > 1:
+            self.legend = self.axes.legend()
+        elif self.legend:
+            self.legend.remove()
+        self.set_x_limits()
 
     def set_backgroud(self):
         self.axes.patch.set_visible(False)
@@ -351,8 +420,37 @@ class PlotCanvas(FigureCanvas):
         self.time = self.axes.axvline(time, color='black', linewidth=0.8)
         self.set_backgroud()
         self.sm.set_norm(norm)
-        self.draw()
+        self.set_x_limits()
 
+    def set_zoom(self, value):
+        self.zoom_level = value
+        self.set_x_limits()
+
+    def set_x_limits(self):
+        if not self.time:
+            return
+        x_values = self.lines[0].get_xdata()
+        minx = min(x_values).to_timestamp()
+        maxx = max(x_values).to_timestamp()
+        duration = maxx - minx
+        interval = duration / 100
+        duration = (duration - interval * self.zoom_level) / 2
+        time = self.time.get_xdata()[0]
+        xmin = time - duration
+        xmax = time + duration
+
+        if xmin < minx:
+            diff = minx - xmin
+            xmin += diff
+            xmax += diff
+
+        if xmax > maxx:
+            diff = xmax - maxx
+            xmax -= diff
+            xmin -= diff
+
+        self.axes.set_xlim(xmin, xmax)
+        self.draw()
 
 class MapCanvas(QFrame):
     clickedElement = pyqtSignal(object)
@@ -383,6 +481,7 @@ class MapCanvas(QFrame):
         self.land_elements = []
         self.visible_elements = None
         self.norm = None
+        self.mapWidget.setAcceptDrops(False)
 
     def pan_to(self):
 
