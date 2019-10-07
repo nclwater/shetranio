@@ -224,16 +224,17 @@ class App(QMainWindow):
                 "XML files (*.xml);;All Files (*)",
                 options=QFileDialog.Options())[0]
         elif self.droppedPath:
-            library_path = os.path.splitdrive(self.droppedPath)[1]
+            library_path = self.droppedPath
             self.droppedPath = None
         else:
             library_path = self.args.l
             self.args.l = None
-        model = Model(library_path)
-        self.models.append(model)
-        self.modelDropDown.addItem('{} - {}'.format(len(self.models), model.library))
-        if len(self.models) > 1:
-            self.set_variables(self.variableDropDown.currentIndex())
+        if os.path.exists(library_path):
+            model = Model(library_path)
+            self.models.append(model)
+            self.modelDropDown.addItem('{} - {}'.format(len(self.models), model.library))
+            if len(self.models) > 1:
+                self.set_variables(self.variableDropDown.currentIndex())
 
     def add_series(self):
         series_path = QFileDialog.getOpenFileName(
@@ -243,10 +244,8 @@ class App(QMainWindow):
             "CSV files (*.csv);;All Files (*)",
             options=QFileDialog.Options())[0]
 
-        if series_path == '':
-            return
-
-        self.plotCanvas.update_data(self.element_number, self.variables, series_path)
+        if os.path.exists(series_path):
+            self.plotCanvas.update_data(self.element_number, self.variables, series_path)
 
 
     def set_variables(self, variable_index):
