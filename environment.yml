@@ -1,0 +1,13 @@
+name: shetran
+dependencies:
+  - PyInstaller
+  - pandas
+  - h5py
+  - gdal
+  - matplotlib
+  - pyqt
+  - beautifulsoup4
+  - pip:
+    - pyqtlet
+    - pyqtwebengine
+

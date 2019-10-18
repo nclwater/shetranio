@@ -4,6 +4,8 @@ from PyInstaller.utils.hooks import collect_data_files
 import pyqtlet
 import os
 
+version = '1.3.1'
+
 osgeo_binaries = collect_data_files('osgeo', include_py_files=True)
 
 block_cipher = None
@@ -26,14 +28,23 @@ a = Analysis(['ui.py', 'ui.spec'],
 
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
+
+name = 'SHETran-Results-Viewer-{}'.format(version)
+
 exe = EXE(pyz,
           a.scripts,
-          a.binaries,
-          a.zipfiles,
-          a.datas,
-          name='SHETran Results Viewer',
-          debug=True,
+          exclude_binaries=True,
+          name=name,
+          debug=False,
           strip=False,
           upx=True,
           runtime_tmpdir=None,
-          console=True )
+          console=False)
+
+coll = COLLECT(exe,
+               a.binaries,
+               a.zipfiles,
+               a.datas,
+               strip=False,
+               upx=True,
+               name=name)

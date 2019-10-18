@@ -1,4 +1,4 @@
-import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
 import os
 from . import dem, hdf
 from datetime import datetime
@@ -7,7 +7,8 @@ from datetime import datetime
 class Model:
     def __init__(self, library_file_path):
         self.library = library_file_path
-        self.tree = ET.parse(library_file_path)
+        with open(library_file_path) as f:
+            self.tree = BeautifulSoup(f, 'html.parser')
         self.project_file = self.get('ProjectFile')
         self.catchment_name = self.get('CatchmentName')
         self.mask = self.get_path('MaskFileName')
@@ -49,13 +50,17 @@ class Model:
                           model=self)
 
     def get(self, name):
-        value = self.tree.find(name)
+        value = self.tree.find(name.lower())
         if value is None:
             return
-        elif value.text.isdigit():
-            return int(value.text)
         else:
-            return value.text
+            value = value.get_text(strip=True)
+        if value is None:
+            return
+        elif value.isdigit():
+            return int(value)
+        else:
+            return value
 
     def path(self, name):
         return os.path.join(os.path.dirname(self.library), str(name)) if name is not None else name
