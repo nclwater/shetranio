@@ -4,7 +4,7 @@ from PyInstaller.utils.hooks import collect_data_files
 import pyqtlet
 import os
 
-version = '1.3.2'
+version = '1.4.0'
 
 osgeo_binaries = collect_data_files('osgeo', include_py_files=True)
 
@@ -48,3 +48,12 @@ coll = COLLECT(exe,
                strip=False,
                upx=True,
                name=name)
+
+exe = EXE(pyz,
+          a.scripts,
+          a.binaries,
+          a.zipfiles,
+          a.datas,
+          name=name,
+          upx=True,
+          strip=False)

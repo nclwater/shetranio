@@ -172,42 +172,38 @@ class Hdf:
         self.snow_depth = LandVariable(self, 'snow_dep')
         self.variables = tuple(self.variables)
         self.spatial_variables = tuple([var for var in self.variables if var.is_spatial])
+        self.elevations = self.get_elevations()
 
 
     def get_element_number(self, dem_file, location):
         d = Dem(dem_file)
-
-        # x_coordinates = np.array([d.x_lower_left+i*d.cell_size for i in range(d.number_of_columns)])
-        # y_coordinates = np.array([d.y_lower_left+i*d.cell_size for i in range(d.number_of_rows)])
-        #
-        # x_location = x_coordinates[np.abs(x_coordinates-location[0]) ==np.min(np.abs(x_coordinates-location[0]))]
-        # y_location = y_coordinates[np.abs(y_coordinates-location[1]) ==np.min(np.abs(y_coordinates-location[1]))]
-        #
-        # x_index = int(np.where(x_coordinates==x_location)[0])
-        # y_index = int(np.where(y_coordinates==y_location)[0])
-
         x_index, y_index = d.get_index(location[0], location[1])
-
-
-
         return self.number.square[y_index,x_index]
 
     def get_element_index(self, element_number):
         return self.element_numbers.tolist().index(element_number)
 
+    def get_elevations(self):
+        n = self.number
+        e = self.surface_elevation
+
+        numbers = list(n.square)
+        elevations = list(e.square)
+
+        for link in ['n', 's', 'w', 'e']:
+            numbers.extend(n.get_link(link))
+            elevations.extend(e.get_link(link))
+        numbers = np.array(numbers).flatten()
+        elevations = np.array(elevations).flatten()
+
+        numbers, indices = np.unique(numbers, return_index=True)
+        elevations = elevations[indices]
+
+        return elevations[elevations != -1]
+
     def get_channel_link_number(self, dem_file, location, direction):
         """Returns north-south and east-west channel link numbers"""
         assert direction in ['n', 'e', 's', 'w'], 'Please specify a direction from [n, e, s, w]'
-        d = Dem(dem_file)
-
-        # x_coordinates = np.array([d.x_lower_left + i * d.cell_size for i in range(d.number_of_columns)])
-        # y_coordinates = np.array([d.y_lower_left + i * d.cell_size for i in range(d.number_of_rows)])
-        #
-        # x_location = x_coordinates[np.abs(x_coordinates - location[0]) == np.min(np.abs(x_coordinates - location[0]))]
-        # y_location = y_coordinates[np.abs(y_coordinates - location[1]) == np.min(np.abs(y_coordinates - location[1]))]
-        #
-        # x_index = int(np.where(x_coordinates == x_location)[0])
-        # y_index = int(np.where(y_coordinates == y_location)[0])
 
         x_index, y_index = d.get_index(location[0], location[1])
 
@@ -235,9 +231,6 @@ class Hdf:
         else:
             index = None
         assert index, 'Element number is not a channel link'
-
-        # x_coordinates = np.array([d.x_lower_left+i*d.cell_size for i in range(d.number_of_columns)])
-        # y_coordinates = np.array([d.y_lower_left+i*d.cell_size for i in range(d.number_of_rows)])
 
         x_location = d.x_coordinates[int(index[1])]
         y_location = d.y_coordinates[int(index[0])]

@@ -38,10 +38,11 @@ class Element(L.polygon):
     def _signal(self):
         self.signal.emit(self)
 
-    def __init__(self, shape, element_number, signal):
+    def __init__(self, shape, element_number, elevation, signal):
         super().__init__(shape, {'weight': self.default_weight, 'fillOpacity': 0.8})
         self.signal = signal
         self.number = element_number
+        self.elevation = elevation
         self.setProperty('element_number', element_number)
         self._connectEventToSignal('click', '_signal')
 
@@ -105,7 +106,7 @@ class App(QMainWindow):
         self.plot_on_hover.setGeometry(600, 10, 100, 50)
 
         self.variableDropDown = QComboBox()
-        for variable in self.model.h5.spatial_variables:
+        for variable in self.model.hdf.spatial_variables:
             self.variableDropDown.addItem(variable.long_name)
         self.variableDropDown.activated.connect(self.set_variables)
 
@@ -127,7 +128,7 @@ class App(QMainWindow):
 
         self.title = 'SHETran Results Viewer'
 
-        self.element_number = None
+        self.element = None
         self.time = 0
 
         self.progress = QProgressBar(self)
@@ -191,6 +192,9 @@ class App(QMainWindow):
         rows.addWidget(row4)
         self.setAcceptDrops(True)
 
+
+        self.model.hdf.get_elevations()
+
         self.mainWidget.setLayout(rows)
         self.setCentralWidget(self.mainWidget)
         self.set_variables(0)
@@ -211,7 +215,7 @@ class App(QMainWindow):
             break
 
         if self.droppedPath.endswith('.csv'):
-            self.plotCanvas.update_data(self.element_number, self.variables, self.droppedPath)
+            self.plotCanvas.update_data(self.element, self.variables, self.droppedPath)
         elif self.droppedPath.endswith('.xml'):
             self.add_model()
 
@@ -245,19 +249,19 @@ class App(QMainWindow):
             options=QFileDialog.Options())[0]
 
         if os.path.exists(series_path):
-            self.plotCanvas.update_data(self.element_number, self.variables, series_path)
+            self.plotCanvas.update_data(self.element, self.variables, series_path)
 
 
     def set_variables(self, variable_index):
-        self.variables = [model.h5.spatial_variables[variable_index] for model in self.models]
+        self.variables = [model.hdf.spatial_variables[variable_index] for model in self.models]
         self.variable = self.variables[self.models.index(self.model)]
         self.slider.setMaximum(len(self.variables[0].times) - 1)
         self.switch_elements()
         self.set_time(self.time)
 
     def update_data(self, element):
-        self.element_number = element.number
-        self.plotCanvas.update_data(element.number, self.variables)
+        self.element = element
+        self.plotCanvas.update_data(element, self.variables)
 
     def set_hover(self):
         class Thread(QThread):
@@ -279,12 +283,12 @@ class App(QMainWindow):
     def switch_elements(self):
         if self.variables[0].is_river:
             self.mapCanvas.show_rivers()
-            self.element_number = self.mapCanvas.river_elements[0].number
+            self.element = self.mapCanvas.river_elements[0]
         else:
             self.mapCanvas.show_land()
-            self.element_number = self.mapCanvas.land_elements[0].number
+            self.element = self.mapCanvas.land_elements[0]
 
-        self.plotCanvas.update_data(self.element_number, self.variables)
+        self.plotCanvas.update_data(self.element, self.variables)
 
     def on_load(self):
         self.progress.hide()
@@ -295,19 +299,19 @@ class App(QMainWindow):
         self.progress.setValue(progress)
 
     def download_values(self):
-        if not self.element_number:
+        if not self.element:
             return
         array = pd.DataFrame({'time': self.variables[0].times[:],
-                              **{'model_{}'.format(i+1): var.get_element(self.element_number).round(3) for i, var in
+                              **{'model_{}'.format(i+1): var.get_element(self.element.number).round(3) for i, var in
                                  enumerate(self.variables)}})
 
         directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), '{} at {}.csv'.format(
-            self.variables[0].long_name, self.element_number).replace('/', ' per '))
+            self.variables[0].long_name, self.element.number).replace('/', ' per '))
 
         dialog = QFileDialog.getSaveFileName(directory=directory, filter="CSV Files (*.csv)")
         if dialog[0] != '':
             with open(dialog[0], 'w') as f:
-                f.write('{} at {}\n'.format(self.variables[0].long_name, self.element_number))
+                f.write('{} at {}\n'.format(self.variables[0].long_name, self.element.number))
             array.to_csv(dialog[0], index=False, mode='a')
 
     def set_time(self, time):
@@ -370,7 +374,7 @@ class PlotCanvas(FigureCanvas):
         self.zoom_level = 0
         self.setAcceptDrops(True)
 
-    def update_data(self, element_number, variables, series_path=None):
+    def update_data(self, element, variables, series_path=None):
 
         for line in self.lines:
             self.axes.lines.remove(line)
@@ -378,7 +382,7 @@ class PlotCanvas(FigureCanvas):
 
         for i, var in enumerate(variables):
 
-            pd.Series(var.get_element(element_number),
+            pd.Series(var.get_element(element.number),
                       index=var.times).plot(color='C{}'.format(i), ax=self.axes, label=i+1)
 
             self.lines.append(self.axes.lines[-1])
@@ -401,7 +405,7 @@ class PlotCanvas(FigureCanvas):
         self.axes.relim()
         self.axes.autoscale_view()
 
-        self.axes.set_title('Element {}'.format(element_number))
+        self.axes.set_title('Element {} - {:.2f} m'.format(element.number, element.elevation))
         self.axes.set_ylabel(variables[0].long_name)
         self.axes.set_xlabel('Time')
         if len(self.lines) > 1:
@@ -493,14 +497,15 @@ class MapCanvas(QFrame):
 
         L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png').addTo(self.map)
 
-        geoms = Geometries(model.h5, model.dem, srs=model.srid)
+        geoms = Geometries(model.hdf, model.dem, srs=model.srid)
 
         prog = 0
-        for geom, number in zip(geoms, model.h5.element_numbers):
+        for geom, number in zip(geoms, model.hdf.element_numbers):
             coords = [list(reversed(coord)) for coord in geom['coordinates'][0]]
-            element = Element(coords, number, self.clickedElement)
+            elevation = model.hdf.elevations[number-1]
+            element = Element(coords, number, elevation, self.clickedElement)
             self.elements.append(element)
-            if number in model.h5.land_elements:
+            if number in model.hdf.land_elements:
                 self.land_elements.append(element)
             else:
                 self.river_elements.append(element)
