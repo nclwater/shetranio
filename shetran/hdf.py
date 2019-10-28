@@ -98,7 +98,9 @@ class LandVariable(Variable):
     def get_time(self, time_index):
         numbers = self.hdf.number.square.flatten()
         values = self.values[:, :, time_index].flatten()
-        return values[values != -1][np.argsort(numbers[numbers != -1])]
+        a = values[numbers != -1][np.argsort(numbers[numbers != -1])]
+        a[a == -1] = np.nan
+        return a
 
 
 class SoilMoisture(LandVariable):
@@ -112,7 +114,9 @@ class SoilMoisture(LandVariable):
     def get_time(self, time_index, level=0):
         numbers = self.hdf.number.square.flatten()
         values = self.values[:, :, level, time_index].flatten()
-        return values[values != -1][np.argsort(numbers[numbers != -1])]
+        a = values[numbers != -1][np.argsort(numbers[numbers != -1])]
+        a[a == -1] = np.nan
+        return a
 
 
 class RainVariable(Variable):
