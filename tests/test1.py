@@ -1,4 +1,4 @@
-from shetran.plot import discharge, evap, overland, soil, WaterTable, water
+from shetranio.plot import discharge, evap, overland, soil, WaterTable, water
 from datetime import datetime as dt
 import os
 

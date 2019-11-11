@@ -1,4 +1,4 @@
-from shetran import hdf
+from shetranio import hdf
 
 h = hdf.Hdf('sample_data/output_Wansbeck_at_Mitford_shegraph.h5')
 

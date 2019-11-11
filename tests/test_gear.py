@@ -1,5 +1,5 @@
 import unittest
-from shetran.setup import gear
+from shetranio.setup import gear
 from datetime import datetime
 
 class TestGear(unittest.TestCase):

@@ -1,4 +1,4 @@
-from shetran.plot import maps
+from shetranio.plot import maps
 import os
 data_path = os.path.join(os.path.dirname(__file__), 'sample_data')
 output_path = os.path.join(os.path.dirname(__file__), 'outputs')

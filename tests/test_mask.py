@@ -1,4 +1,4 @@
-from shetran.setup import mask
+from shetranio.setup import mask
 import unittest
 
 class TestClipper(unittest.TestCase):
