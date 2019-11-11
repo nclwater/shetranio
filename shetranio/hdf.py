@@ -268,7 +268,7 @@ class Hdf:
 
         return d
 
-    def to_geom(self, dem, srs=27700):
+    def to_geom(self, dem, srs='EPSG:27700'):
 
         dem = Dem(dem)
 

@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Dem:
     def __init__(self, path):
         self.path = path
