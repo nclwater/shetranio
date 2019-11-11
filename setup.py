@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='shetranio',
     version='0.1.0',
-    packages=['shetran', 'shetran.setup'],
+    packages=['shetranio', 'shetranio.setup'],
     url='https://github.com/nclwater/shetranio',
     license='MIT',
     author='Fergus McClean',
