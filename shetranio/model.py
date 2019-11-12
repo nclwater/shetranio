@@ -5,8 +5,9 @@ from datetime import datetime
 
 
 class Model:
-    def __init__(self, library_file_path):
+    def __init__(self, library_file_path, name=None):
         self.library = library_file_path
+        self.name = name
         with open(library_file_path) as f:
             self.tree = BeautifulSoup(f, 'html.parser')
         self.project_file = self.get('ProjectFile')
