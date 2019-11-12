@@ -11,6 +11,8 @@ pip install shetranio
   - pandas
   - beautifulsoup4
  
+All core dependencies are included with the default Anaconda distribution 
+(https://docs.anaconda.com/anaconda/install/windows/).
 To easily install shetranio and dependencies into a new environment:
 
 ```
