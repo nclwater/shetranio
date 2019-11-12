@@ -1,0 +1,8 @@
+dependencies:
+  - h5py
+  - gdal
+  - pandas
+  - beautifulsoup4
+  - matplotlib
+  - pip:
+    - twine
