@@ -38,7 +38,7 @@ class Variable:
 
     def __init__(self, hdf, variable_name):
         self.name = variable_name
-        self.hdf = hdf
+        self.hdf: Hdf = hdf
         self.variable = hdf.file_variables[hdf.variable_names[variable_name]]
         self.values = self.variable['value']
         self.times = self.variable['time']
@@ -58,11 +58,23 @@ class Variable:
         except TypeError:
             pass
 
+    def get_element_by_location(self, dem, x, y):
+        try:
+            self.get_element(self.hdf.get_element_number(dem, x, y))
+        except ValueError:
+            raise Exception('There is no element at this location')
+
 
 class RiverVariable(Variable):
     def __init__(self, hdf, variable_name):
         super().__init__(hdf, variable_name)
         self.is_river = True
+
+    def get_element_by_location(self, dem, x, y, direction):
+        try:
+            self.get_element(self.hdf.get_channel_link_number(dem, x, y, direction))
+        except ValueError:
+            raise Exception('There is no element at this location')
 
 
 class OverlandFlow(RiverVariable):
@@ -174,11 +186,9 @@ class Hdf:
         self.spatial_variables = tuple([var for var in self.variables if var.is_spatial])
         self.elevations = self.get_elevations()
 
-
-    def get_element_number(self, dem_file, location):
-        d = Dem(dem_file)
-        x_index, y_index = d.get_index(location[0], location[1])
-        return self.number.square[y_index,x_index]
+    def get_element_number(self, dem: Dem, x, y):
+        x_index, y_index = dem.get_index(x, y)
+        return self.number.square[y_index, x_index]
 
     def get_element_index(self, element_number):
         return self.element_numbers.tolist().index(element_number)
@@ -201,11 +211,11 @@ class Hdf:
 
         return elevations[elevations != -1]
 
-    def get_channel_link_number(self, dem_file, location, direction):
+    def get_channel_link_number(self, dem: Dem, x, y, direction):
         """Returns north-south and east-west channel link numbers"""
         assert direction in ['n', 'e', 's', 'w'], 'Please specify a direction from [n, e, s, w]'
 
-        x_index, y_index = d.get_index(location[0], location[1])
+        x_index, y_index = dem.get_index(x, y)
 
         if direction=='n':
             return self.number.north_link[y_index, x_index]
