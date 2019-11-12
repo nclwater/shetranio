@@ -82,7 +82,8 @@ class OverlandFlow(RiverVariable):
         super().__init__(hdf, variable_name)
 
     def get_element(self, element_number):
-        return np.abs(self.values[self.hdf.get_element_index(element_number), :, :]).max(axis=0)
+        return pd.Series(np.abs(self.values[self.hdf.get_element_index(element_number), :, :]).max(axis=0),
+                         index=self.times)
 
     def get_time(self, time_index):
         return np.abs(self.values[:, :, time_index]).max(axis=1)
@@ -93,7 +94,8 @@ class SurfaceDepth(RiverVariable):
         super().__init__(hdf, variable_name)
 
     def get_element(self, element_number):
-        return self.values[self.hdf.get_element_index(element_number), :]
+        return pd.Series(self.values[self.hdf.get_element_index(element_number), :],
+                         index=self.times)
 
     def get_time(self, time_index):
         return np.abs(self.values[:, time_index])
@@ -105,7 +107,7 @@ class LandVariable(Variable):
 
     def get_element(self, element_number):
         index = np.where(self.hdf.number.square == element_number)
-        return self.values[index[0][0], index[1][0]]
+        return pd.Series(self.values[index[0][0], index[1][0]], index=self.times)
 
     def get_time(self, time_index):
         numbers = self.hdf.number.square.flatten()
@@ -121,7 +123,7 @@ class SoilMoisture(LandVariable):
 
     def get_element(self, element_number, level=0):
         index = np.where(self.hdf.number.square == element_number)
-        return self.values[index[0][0], index[1][0], level]
+        return pd.Series(self.values[index[0][0], index[1][0], level], index=self.times)
 
     def get_time(self, time_index, level=0):
         numbers = self.hdf.number.square.flatten()
