@@ -182,8 +182,7 @@ class Hdf:
         self.sediment_discharge_rate = LandVariable(self, 's_dis')
         self.mass_balance_error = LandVariable(self, 'bal_err')
         self.snow_depth = LandVariable(self, 'snow_dep')
-        self.variables = tuple(self.variables)
-        self.spatial_variables = tuple([var for var in self.variables if var.is_spatial])
+        self.spatial_variables = [var for var in self.variables if var.is_spatial]
         self.elevations = self.get_elevations()
 
     def get_element_number(self, dem: Dem, x, y):
