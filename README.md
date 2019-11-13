@@ -34,3 +34,5 @@ values = model.hdf.overland_flow.get_element(100)
 times = model.hdf.overland_flow.times
 
 ```
+
+An example Jupyter notebook is available at https://github.com/nclwater/shetranio/blob/master/docs/notebooks/plotting-discharge-and-groundwater-depth.ipynb
