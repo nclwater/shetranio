@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='shetranio',
-    version='0.3.0',
+    version='0.4.0',
     packages=['shetranio', 'shetranio.setup'],
     url='https://github.com/nclwater/shetranio',
     license='MIT',
