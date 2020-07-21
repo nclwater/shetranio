@@ -28,6 +28,17 @@ class Constant:
         else:
             raise Exception('Please specify a direction from [n,e,s,w]')
 
+    def get_bank(self, direction):
+        if direction == 'n':
+            return self.north_bank
+        elif direction == 'e':
+            return self.east_bank
+        elif direction == 's':
+            return self.south_bank
+        elif direction == 'w':
+            return self.west_bank
+        else:
+            raise Exception('Please specify a direction from [n,e,s,w]')
 
 class Variable:
     def __new__(cls, hdf, variable_name):
@@ -216,6 +227,8 @@ class Hdf:
         for link in ['n', 's', 'w', 'e']:
             numbers.extend(n.get_link(link))
             elevations.extend(e.get_link(link))
+            numbers.extend(n.get_bank(link))
+            elevations.extend(e.get_bank(link))
         numbers = np.array(numbers).flatten()
         elevations = np.array(elevations).flatten()
 
