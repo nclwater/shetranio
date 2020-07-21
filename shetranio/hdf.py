@@ -117,7 +117,7 @@ class LandVariable(Variable):
         return a
 
 
-class SoilMoisture(LandVariable):
+class LayeredLandVariable(LandVariable):
     def __init__(self, hdf, variable_name):
         super().__init__(hdf, variable_name)
 
@@ -178,7 +178,7 @@ class Hdf:
         self.overland_flow = OverlandFlow(self, 'ovr_flow')
         self.surface_depth = SurfaceDepth(self, 'srf_dep')
         self.surface_water_potential = LandVariable(self, 'psi')
-        self.soil_moisture = SoilMoisture(self, 'theta')
+        self.soil_moisture = LayeredLandVariable(self, 'theta')
         self.total_sediment_depth = LandVariable(self, 's_t_dp')
         self.surface_erosion_rate = LandVariable(self, 's_v_er')
         self.sediment_discharge_rate = LandVariable(self, 's_dis')
@@ -194,8 +194,8 @@ class Hdf:
             elif scope == 'rivers':
                 self.variable_names['c_c_dr_rivers'] = name
 
-        self.contaminant_concentration_land = LandVariable(self, 'c_c_dr_squares')
-        self.contaminant_concentration_rivers = RiverVariable(self, 'c_c_dr_rivers')
+        self.contaminant_concentration_land = LayeredLandVariable(self, 'c_c_dr_squares')
+        self.contaminant_concentration_rivers = OverlandFlow(self, 'c_c_dr_rivers')
         self.spatial_variables = [var for var in self.variables if var.is_spatial]
         self.elevations = self.get_elevations()
 
