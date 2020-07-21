@@ -23,3 +23,8 @@ class TestModel(unittest.TestCase):
 
     def test_get_element_by_location(self):
         wansbeck.hdf.ph_depth.get_element_by_location(wansbeck.dem, 398465, 586505)
+
+    def test_get_contaminant_concentration(self):
+        model = Model(path("coledale-contaminant-good3-test/LibraryFile.xml"))
+        print(model.hdf.contaminant_concentration_land)
+        print(model.hdf.contaminant_concentration_rivers)

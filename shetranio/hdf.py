@@ -184,6 +184,18 @@ class Hdf:
         self.sediment_discharge_rate = LandVariable(self, 's_dis')
         self.mass_balance_error = LandVariable(self, 'bal_err')
         self.snow_depth = LandVariable(self, 'snow_dep')
+
+        c_c_names = [key for key in self.file_variables.keys() if 'c_c_dr' in key]
+        for name in c_c_names:
+            scope = self.file_variables[name]['value'].attrs['scope'][0].decode("utf-8")
+
+            if scope == 'squares':
+                self.variable_names['c_c_dr_squares'] = name
+            elif scope == 'rivers':
+                self.variable_names['c_c_dr_rivers'] = name
+
+        self.contaminant_concentration_land = LandVariable(self, 'c_c_dr_squares')
+        self.contaminant_concentration_rivers = RiverVariable(self, 'c_c_dr_rivers')
         self.spatial_variables = [var for var in self.variables if var.is_spatial]
         self.elevations = self.get_elevations()
 
@@ -497,6 +509,8 @@ variable_names = {
     's_t_dp': 'Total Sediment Depth',
     's_v_er': 'Surface Erosion Rate',
     's_dis': 'Sediment Discharge Rate',
-    'bal_err': 'Mass Balance Error'
+    'bal_err': 'Mass Balance Error',
+    'c_c_dr_squares': 'Contaminant Concentration (Land)',
+    'c_c_dr_rivers': 'Contaminant Concentration (Rivers)'
 }
 
